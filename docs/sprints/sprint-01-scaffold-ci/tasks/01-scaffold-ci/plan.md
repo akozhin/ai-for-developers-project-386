@@ -21,10 +21,10 @@
 - [x] Тестовые раннеры и по одному дымовому тесту: pytest, Vitest
 - [x] Линтеры: ruff (`ALL`), mypy strict, ESLint + Prettier, `tsc`
 - [x] `Makefile` как единая точка входа
-- [ ] GitHub Actions: тесты и линтеры на каждый push — зелёный прогон
-- [ ] release-please отдельным workflow — release-PR после мержа в `main`
-- [ ] Самопроверка по DoD
-- [ ] (после «ок» пользователя) `summary.md`, обновить sprint README и roadmap
+- [x] GitHub Actions: тесты и линтеры на каждый push — зелёный прогон
+- [x] release-please отдельным workflow — release-PR после мержа в `main`
+- [x] Самопроверка по DoD
+- [x] (после «ок» пользователя) `summary.md`, обновить sprint README и roadmap
 
 ---
 

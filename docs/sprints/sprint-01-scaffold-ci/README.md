@@ -2,8 +2,9 @@
 
 > **Версия roadmap:** v0.1
 > **Roadmap:** [../../roadmap.md](../../roadmap.md)
-> **Статус:** 🚧 In Progress
+> **Статус:** ✅ Done
 > **Открыт:** 2026-10-07
+> **Закрыт:** 2026-10-07
 
 ---
 
@@ -30,11 +31,11 @@
 
 | # | Задача | Статус | Plan | Summary |
 |---|--------|--------|------|---------|
-| 01 | Каркас, тесты, линтеры, CI и release-please | 🚧 | [plan](tasks/01-scaffold-ci/plan.md) | — |
+| 01 | Каркас, тесты, линтеры, CI и release-please | ✅ | [plan](tasks/01-scaffold-ci/plan.md) | [summary](tasks/01-scaffold-ci/summary.md) |
 
 ---
 
-## Задача 01: Каркас, тесты, линтеры, CI и release-please 🚧
+## Задача 01: Каркас, тесты, линтеры, CI и release-please ✅
 
 ### Цель
 
@@ -53,10 +54,10 @@
 ### Документы
 
 - 📋 [План задачи](tasks/01-scaffold-ci/plan.md)
-- 📝 Summary — после согласования
+- 📝 [Summary](tasks/01-scaffold-ci/summary.md)
 
 ---
 
-## Итог (заполняется после закрытия)
+## Итог
 
-—
+Каркас backend и frontend, дымовые тесты, линтеры, CI на каждый push и release-please работают. PR #1 смержен, release-PR #2 создан. Отклонения и версии — в [summary](tasks/01-scaffold-ci/summary.md). В следующий спринт: БД, API бронирования.
