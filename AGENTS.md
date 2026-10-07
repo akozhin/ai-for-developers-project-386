@@ -1,8 +1,10 @@
 # AGENTS.md
 
-Проект «Запись на звонок»: монорепо `backend/` (FastAPI, uv) + `frontend/` (Next.js, pnpm). Все команды — из корня через `make`.
+«Запись на звонок» — упрощённый Cal.com: владелец публикует слоты, гость записывается (без авторизации и внешних календарей). Тестовое задание Hexlet «AI for Developers». Монорепо: `backend/` (FastAPI, uv) + `frontend/` (Next.js, pnpm). Документация — [docs/README.md](docs/README.md).
 
 ## Команды
+
+Все команды — из корня через `make` (`make help` — список). Прямые вызовы `uv`/`pnpm` в доках и CI не используются.
 
 | Что | Команда |
 |-----|---------|
@@ -14,8 +16,14 @@
 | **Тесты** | `make test` (`make test-backend`, `make test-frontend`) |
 | **Линтер** | `make lint` (ruff + ESLint + Prettier) |
 | Типы | `make typecheck` (mypy + tsc) |
+| Автоисправление | `make format` |
 | Сборка frontend | `make build` |
 | Полный прогон как в CI | `make ci` |
+
+Один тест:
+
+- backend: `cd backend && uv run pytest tests/test_health.py::test_health_returns_ok`
+- frontend: `cd frontend && pnpm vitest run tests/home.test.tsx` (или `-t "<имя>"`)
 
 ## Формат коммитов
 
@@ -25,11 +33,25 @@
 - `scope`: `backend`, `frontend`, `infra`, `program`
 - Примеры: `feat(backend): add slots endpoint`, `fix(frontend): handle empty slot list`
 - Breaking change — `feat!:` или футер `BREAKING CHANGE:`.
-- В `main` — только через PR со squash merge; заголовок PR тоже в формате Conventional Commits (по нему release-please считает версию).
+- В `main` — только через PR со squash merge; заголовок PR тоже в формате Conventional Commits (по нему release-please считает версию). Release-PR создаётся только при `feat`/`fix`.
 
-## Прочее
+## Процесс работы
 
-- Не менять `.github/workflows/hexlet-check.yml`.
+Работа ведётся по плану задачи `docs/sprints/sprint-NN-*/tasks/NN-*/plan.md`. Два согласования с человеком: план → «ок» → реализация → итог DoD → «ок» → только потом `summary.md` и обновление README спринта и `docs/roadmap.md`. Менять только файлы из раздела «Артефакты» плана.
+
+## Архитектура
+
+- **Бизнес-логика только в backend** (расчёт слотов, бронирование); frontend — тонкий UI поверх REST `/api/v1/...`, `/health` — без версии. Контракты — `docs/concept/api-contracts.md` (черновик; реализуется в sprint-02, пока есть только `/health`).
+- Backend: `app/main.py` собирает приложение через `create_app()`, роутеры в `app/routers/` (1 роутер = 1 файл), настройки — `app/config.py` (pydantic-settings, fail-fast). БД, Alembic и модели пока не созданы (YAGNI до sprint-02), `make migrate*` — заглушки.
+- Двойное бронирование исключается ограничением в БД (`UNIQUE` по слоту); время хранится в UTC (`TIMESTAMPTZ`). См. `docs/concept/data-model.md`.
+- Тесты backend: `asyncio_mode=auto`, приложение тестируется через `httpx.ASGITransport` без поднятия сервера.
+
+## Особенности
+
+- **Строгие линтеры:** ruff `select = ["ALL"]` (игноры и `per-file-ignores` — в `backend/pyproject.toml`), mypy strict; в TS запрещены `any` и `@ts-ignore`. Тесты frontend — в `frontend/tests/`, алиас `@/` указывает на корень `frontend/`.
+- **Next.js 16** отличается от привычных версий — перед правками читать `frontend/AGENTS.md`.
+- shadcn/ui: компоненты в `frontend/components/ui/`, добавлять через `pnpm dlx shadcn@latest add <name>` в `frontend/`; только семантические цвета-токены.
+- Не менять `.github/workflows/hexlet-check.yml` и не переименовывать репозиторий (проверки Hexlet).
 - Секреты — только в `.env` (не коммитится), образец — `.env.example`.
-- Frontend на Next.js 16: перед правками читать `frontend/AGENTS.md`.
-- Документация — в `docs/` ([навигатор](docs/README.md)).
+- Порт 3000 может быть занят Docker; для превью — `.claude/launch.json` (frontend :3100, backend :8000).
+- Локальные файлы вне git: `.methodology/`, `.cursor/`, `.claude/` — на них не ссылаться из закоммиченных файлов.
