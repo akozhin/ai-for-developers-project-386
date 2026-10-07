@@ -56,6 +56,13 @@ make ci             # lint + typecheck + test + build, как в CI
 3. Если есть релизные коммиты, бот открывает (и потом обновляет) **release-PR** `chore(main): release X.Y.Z`: в нём новая версия в `.release-please-manifest.json` и дописанный `CHANGELOG.md`.
 4. Вы мержите release-PR вручную — тогда создаются git-тег и GitHub Release. Пока не смержили, PR просто копит изменения.
 
+**Где смотреть и что проверять**
+
+- **Release-PR** — вкладка Pull Requests: PR `chore(main): release X.Y.Z` от `github-actions`, ветка `release-please--branches--main`. Это и есть «релиз» на этапе проверки задания: он появляется после мержа в `main` коммита `feat`/`fix`.
+- **Запуск workflow** — вкладка Actions → `release-please`: прогон на push в `main` должен быть зелёным.
+- **GitHub Release и тег** (`vX.Y.Z`, вкладка Releases) появятся только после мержа самого release-PR. Пока его не смержили — релизов нет, и это нормально. Для каркаса release-PR можно не мержить.
+- **Если release-PR нет:** в `main` не было `feat`/`fix` коммитов (только `chore`/`docs`) либо выключена настройка Settings → Actions → General → «Allow GitHub Actions to create and approve pull requests».
+
 Конфиг: `release-please-config.json`, `.release-please-manifest.json`. Нужна настройка репозитория: Settings → Actions → General → «Allow GitHub Actions to create and approve pull requests».
 
 ---
