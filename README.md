@@ -10,20 +10,53 @@
 
 ## Стек
 
-- Разное
+- **Backend:** Python 3.12, uv, FastAPI, SQLAlchemy 2 async, Alembic, PostgreSQL
+- **Frontend:** Next.js, React, TypeScript, Tailwind 4, shadcn/ui, pnpm
+- **Качество:** ruff, mypy, ESLint, Prettier, pytest, Vitest
+- **CI/CD:** GitHub Actions, release-please
+- Документация и методология: [docs/](docs/README.md)
 
 ## Установка
 
-<!-- Опишите установку: клонирование, зависимости, переменные окружения -->
+Нужны `uv`, `pnpm` (Node 24), `make`.
 
 ```bash
 git clone https://github.com/akozhin/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
+make install
 ```
 
 ## Использование
 
-<!-- Добавьте примеры запуска и запись asciinema — именно это смотрит работодатель -->
+```bash
+make help           # список всех команд
+make dev-backend    # http://localhost:8000/health -> {"status":"ok"}
+make dev-frontend   # http://localhost:3000
+make test           # тесты backend (pytest) и frontend (Vitest)
+make lint           # линтеры backend (ruff) и frontend (ESLint, Prettier)
+make ci             # lint + typecheck + test + build, как в CI
+```
+
+Полный список команд и правила для агентов — в [AGENTS.md](AGENTS.md).
+
+## Как проверить требования задания
+
+| # | Требование | Как проверить |
+|---|------------|---------------|
+| 1 | Backend и frontend запускаются локально | `make install`, затем `make dev-backend` и `curl localhost:8000/health` (ждём `{"status":"ok"}`); `make dev-frontend` и открыть http://localhost:3000 — заголовок «Запись на звонок» |
+| 2 | Есть команды тестов и линтера | `make help` показывает их; `make test` и `make lint` завершаются с кодом 0 |
+| 3 | GitHub Actions прогоняет тесты и линтер на каждый push, прогон зелёный | Вкладка Actions → workflow **CI** (jobs Backend и Frontend) зелёный на последнем коммите; `gh run list --workflow ci.yml` |
+| 4 | Conventional Commits; release-please создаёт release-PR после мержа в `main` | `git log --oneline` — все коммиты вида `type(scope): ...`; после мержа в `main` во вкладке Pull Requests появляется PR `chore(main): release X.Y.Z` от `release-please` |
+| 5 | В корне есть `AGENTS.md` с командами запуска, тестов, линтера и правилом про формат коммитов | Открыть [AGENTS.md](AGENTS.md) |
+
+## Как работает release-please
+
+1. Вы пишете коммиты по Conventional Commits и мержите PR в `main` (squash — заголовок PR становится коммитом).
+2. Workflow `release-please.yml` на каждый push в `main` читает коммиты с прошлого релиза. `fix:` поднимает patch, `feat:` — minor, `feat!:` / `BREAKING CHANGE` — major (пока версия 0.x, minor/major сдвигаются осторожнее). `chore:`, `docs:` версию не поднимают.
+3. Если есть релизные коммиты, бот открывает (и потом обновляет) **release-PR** `chore(main): release X.Y.Z`: в нём новая версия в `.release-please-manifest.json` и дописанный `CHANGELOG.md`.
+4. Вы мержите release-PR вручную — тогда создаются git-тег и GitHub Release. Пока не смержили, PR просто копит изменения.
+
+Конфиг: `release-please-config.json`, `.release-please-manifest.json`. Нужна настройка репозитория: Settings → Actions → General → «Allow GitHub Actions to create and approve pull requests».
 
 ---
 
