@@ -55,3 +55,17 @@
 - Секреты — только в `.env` (не коммитится), образец — `.env.example`.
 - Порт 3000 может быть занят Docker; для превью — `.claude/launch.json` (frontend :3100, backend :8000).
 - Локальные файлы вне git: `.methodology/`, `.cursor/`, `.claude/` — на них не ссылаться из закоммиченных файлов.
+
+## Agent skills
+
+### Issue tracker
+
+Issues живут в GitHub Issues репозитория (`gh` CLI). См. `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Стандартные лейблы: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. См. `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` в корне (когда появится), ADR — в `docs/decisions/`. См. `docs/agents/domain.md`.

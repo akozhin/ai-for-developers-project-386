@@ -92,4 +92,5 @@ docker-compose.override.yml
 .methodology/
 .cursor/
 CLAUDE.md
-.claude/
+.claude/*
+!.claude/skills
