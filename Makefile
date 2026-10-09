@@ -1,11 +1,12 @@
 .DEFAULT_GOAL := help
-.PHONY: help install dev dev-backend dev-frontend lint lint-backend lint-frontend format typecheck typecheck-backend typecheck-frontend test test-backend test-frontend build up down migrate migrate-new ci
+.PHONY: help install generate generate-check lint-api dev dev-backend dev-frontend lint lint-backend lint-frontend format typecheck typecheck-backend typecheck-frontend test test-backend test-frontend build up down migrate migrate-new ci
 
 help: ## Показать список команд
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-install: ## Установить зависимости backend и frontend
+install: ## Установить зависимости backend, frontend и контракта
 	cd backend && uv sync --dev
+	cd api && pnpm install --frozen-lockfile
 	cd frontend && pnpm install --frozen-lockfile
 
 dev: ## Запустить backend и frontend
@@ -17,7 +18,7 @@ dev-backend: ## Запустить backend на :8000
 dev-frontend: ## Запустить frontend на :3000
 	cd frontend && pnpm dev
 
-lint: lint-backend lint-frontend ## Линтеры: ruff, ESLint, Prettier
+lint: lint-backend lint-frontend lint-api ## Линтеры: ruff, ESLint, Prettier, tsp format
 
 lint-backend: ## Линтер backend (ruff)
 	cd backend && uv run ruff check . && uv run ruff format --check .
@@ -25,7 +26,11 @@ lint-backend: ## Линтер backend (ruff)
 lint-frontend: ## Линтер frontend (ESLint, Prettier)
 	cd frontend && pnpm lint && pnpm format:check
 
+lint-api: ## Форматирование контракта (tsp format --check)
+	cd api && pnpm format:check
+
 format: ## Отформатировать код
+	cd api && pnpm format
 	cd backend && uv run ruff check --fix . && uv run ruff format .
 	cd frontend && pnpm format
 
@@ -60,4 +65,12 @@ migrate: ## Применить миграции (появятся в sprint-02)
 migrate-new: ## Создать миграцию (появятся в sprint-02)
 	@echo "Миграции появятся в sprint-02 (Alembic ещё не инициализирован)"
 
-ci: lint typecheck test build ## Полный прогон как в CI
+generate: ## Сгенерировать всё из контракта TypeSpec (api/main.tsp -> api/openapi.yaml)
+	cd api && pnpm build
+	@{ printf '# GENERATED из api/main.tsp командой `make generate`. НЕ ПРАВИТЬ РУКАМИ.\n'; cat api/openapi.yaml; } > api/openapi.yaml.tmp
+	@mv api/openapi.yaml.tmp api/openapi.yaml
+
+generate-check: generate ## Проверить, что сгенерированное закоммичено и актуально
+	@test -z "$$(git status --porcelain -- api/openapi.yaml)" || { git --no-pager diff -- api/openapi.yaml; echo "Сгенерированные файлы устарели: выполните make generate и закоммитьте результат"; exit 1; }
+
+ci: generate-check lint typecheck test build ## Полный прогон как в CI
