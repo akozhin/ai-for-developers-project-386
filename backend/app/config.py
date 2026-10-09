@@ -34,6 +34,8 @@ class Settings(BaseSettings):
 
     # Ключ AI-провайдера; пустой — AI-подбор выключен.
     ai_api_key: SecretStr | None = None
+    ai_base_url: str = "https://openrouter.ai/api/v1"
+    ai_model: str = "anthropic/claude-haiku-4.5"
 
     @field_validator("owner_avatar_url", "ai_api_key", mode="before")
     @classmethod
