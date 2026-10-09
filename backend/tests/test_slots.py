@@ -1,14 +1,10 @@
 """Слоты типа события: окно из 14 дней, сетка 30 минут, рабочее расписание, запас до записи."""
 
-from collections.abc import Callable
-from datetime import datetime
+from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 from typing import Any
 
 import httpx
-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
-
-from app import models
 
 CALL_30 = {
     "id": "call-30",
@@ -207,33 +203,13 @@ async def test_custom_timezone_days_and_hours_are_applied(
     assert by_date["2026-10-14"] == []  # среда
 
 
-async def insert_booking(
-    engine: AsyncEngine,
-    event_type_id: str,
-    starts_at: str,
-    ends_at: str,
-) -> None:
-    """Вставить бронирование напрямую в БД (создание через API — отдельный тикет)."""
-    async with async_sessionmaker(engine)() as session:
-        session.add(
-            models.Booking(
-                event_type_id=event_type_id,
-                starts_at=datetime.fromisoformat(starts_at),
-                ends_at=datetime.fromisoformat(ends_at),
-                guest_name="Анна",
-                guest_email="anna@example.com",
-            ),
-        )
-        await session.commit()
-
-
 def starts(day: dict[str, Any]) -> list[str]:
     return [item["starts_at"] for item in day["slots"]]
 
 
 async def test_booking_of_another_type_hides_every_overlapping_slot(
     client: httpx.AsyncClient,
-    engine: AsyncEngine,
+    insert_booking: Callable[..., Awaitable[None]],
     freeze_now: Callable[[str], None],
     configure_schedule: Callable[..., None],
 ) -> None:
@@ -242,9 +218,7 @@ async def test_booking_of_another_type_hides_every_overlapping_slot(
     freeze_now(MONDAY_MORNING)
     configure_schedule(booking_min_notice_minutes=0)
     # Звонок на 60 минут в понедельник 12:00–13:00 по Москве.
-    await insert_booking(
-        engine, "call-60", "2026-10-12T09:00:00+00:00", "2026-10-12T10:00:00+00:00"
-    )
+    await insert_booking("call-60", "2026-10-12T09:00:00+00:00", "2026-10-12T10:00:00+00:00")
 
     monday = (await get_days(client, "call-30"))[0]
 
@@ -256,7 +230,7 @@ async def test_booking_of_another_type_hides_every_overlapping_slot(
 
 async def test_sixty_minute_slots_overlapping_a_short_booking_are_hidden(
     client: httpx.AsyncClient,
-    engine: AsyncEngine,
+    insert_booking: Callable[..., Awaitable[None]],
     freeze_now: Callable[[str], None],
     configure_schedule: Callable[..., None],
 ) -> None:
@@ -265,9 +239,7 @@ async def test_sixty_minute_slots_overlapping_a_short_booking_are_hidden(
     freeze_now(MONDAY_MORNING)
     configure_schedule(booking_min_notice_minutes=0)
     # Звонок на 30 минут в понедельник 12:00–12:30 по Москве.
-    await insert_booking(
-        engine, "call-30", "2026-10-12T09:00:00+00:00", "2026-10-12T09:30:00+00:00"
-    )
+    await insert_booking("call-30", "2026-10-12T09:00:00+00:00", "2026-10-12T09:30:00+00:00")
 
     monday = (await get_days(client, "call-60"))[0]
 
@@ -279,16 +251,14 @@ async def test_sixty_minute_slots_overlapping_a_short_booking_are_hidden(
 
 async def test_booking_of_the_same_type_hides_its_own_slot(
     client: httpx.AsyncClient,
-    engine: AsyncEngine,
+    insert_booking: Callable[..., Awaitable[None]],
     freeze_now: Callable[[str], None],
     configure_schedule: Callable[..., None],
 ) -> None:
     await client.post("/api/v1/event-types", json=CALL_30)
     freeze_now(MONDAY_MORNING)
     configure_schedule(booking_min_notice_minutes=0)
-    await insert_booking(
-        engine, "call-30", "2026-10-12T07:00:00+00:00", "2026-10-12T07:30:00+00:00"
-    )
+    await insert_booking("call-30", "2026-10-12T07:00:00+00:00", "2026-10-12T07:30:00+00:00")
 
     monday = (await get_days(client, "call-30"))[0]
 

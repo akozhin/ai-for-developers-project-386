@@ -80,3 +80,15 @@ def compute_slot_days(
 
 def _overlaps_any(slot: Slot, busy: Sequence[Interval]) -> bool:
     return any(begins < slot.ends_at and slot.starts_at < ends for begins, ends in busy)
+
+
+def find_bookable_slot(
+    *,
+    duration_minutes: int,
+    starts_at: datetime,
+    now: datetime,
+    settings: Settings,
+) -> Slot | None:
+    """Слот расписания с таким началом (без учёта броней): допустимо ли это время вообще."""
+    days = compute_slot_days(duration_minutes=duration_minutes, now=now, settings=settings, busy=[])
+    return next((slot for day in days for slot in day.slots if slot.starts_at == starts_at), None)
