@@ -10,7 +10,7 @@
 
 ## Как это выглядит
 
-Упрощённый Cal.com: владелец публикует типы звонков, гость выбирает свободный слот на ближайшие 14 дней и записывается без регистрации. Двойное бронирование исключено — две встречи не пересекаются, даже если это разные типы.
+Упрощённый Cal.com: владелец публикует типы событий, гость выбирает свободный слот на ближайшие 14 дней и бронирует его без регистрации. Двойное бронирование исключено — две встречи не пересекаются, даже если это разные типы.
 
 ![Экран записи: календарь, слоты и форма подтверждения](docs/mockups/main.png)
 
@@ -18,44 +18,84 @@
 
 ![Режим «Подобрать с AI»](docs/mockups/book.png)
 
-> Это макеты: реализация идёт по [спецификации](https://github.com/akozhin/ai-for-developers-project-386/issues/14). Решения — в [docs/decisions/](docs/decisions/), словарь — в [GLOSSARY.md](GLOSSARY.md).
+> Макеты лежат в [docs/mockups/](docs/mockups/); реализация сделана по [спецификации](https://github.com/akozhin/ai-for-developers-project-386/issues/14). Решения — в [docs/decisions/](docs/decisions/), словарь — в [GLOSSARY.md](GLOSSARY.md), API-контракт — [`api/main.tsp`](api/main.tsp) ([обзор](docs/concept/api-contracts.md)).
 
 ## Стек
 
-- **Backend:** Python 3.12, uv, FastAPI, SQLAlchemy 2 async, Alembic, PostgreSQL
+- **Контракт:** TypeSpec → OpenAPI 3.1 → SDK frontend (`@hey-api/openapi-ts`), Design First
+- **Backend:** Python 3.12, uv, FastAPI, SQLAlchemy 2 async, Alembic, PostgreSQL 18, LangChain (AI-подбор слотов)
 - **Frontend:** Next.js, React, TypeScript, Tailwind 4, shadcn/ui, pnpm
 - **Качество:** ruff, mypy, ESLint, Prettier, pytest, Vitest
 - **CI/CD:** GitHub Actions, release-please
 - Документация и методология: [docs/](docs/README.md)
 
-## Установка
+## Установка и запуск
 
-Нужны `uv`, `pnpm` (Node 24), `make`.
+Нужны `uv`, `pnpm` (Node 24), `make`, Docker (для PostgreSQL).
 
 ```bash
 git clone https://github.com/akozhin/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
-make install
+make install        # зависимости backend, frontend и контракта
+make up             # PostgreSQL в Docker (порт 5432)
+make migrate        # применить миграции
+make dev            # backend :8000 и frontend :3000
+make seed           # (в другом терминале, при запущенном backend) типы событий на 30 и 60 минут
 ```
 
-## Использование
+Откройте http://localhost:3000 — экран записи; http://localhost:3000/admin — страница владельца (встречи и типы событий, без авторизации); http://localhost:8000/docs — Swagger UI контракта. `make seed` безопасно повторять: уже существующие типы пропускаются.
+
+Если порт 3000 занят, запустите `make dev-backend` и `PORT=3100 make dev-frontend` по отдельности.
+
+## Команды
 
 ```bash
 make help           # список всех команд
-make dev-backend    # http://localhost:8000/health -> {"status":"ok"}
-make dev-frontend   # http://localhost:3000
-make test           # тесты backend (pytest) и frontend (Vitest)
-make lint           # линтеры backend (ruff) и frontend (ESLint, Prettier)
-make ci             # lint + typecheck + test + build, как в CI
+make test           # тесты backend (pytest, нужна БД: make up) и frontend (Vitest)
+make lint           # линтеры: ruff, ESLint, Prettier, tsp format
+make typecheck      # mypy и tsc
+make generate       # контракт: TypeSpec → api/openapi.yaml → SDK frontend
+make generate-check # то же + проверка, что результат закоммичен (есть в CI)
+make migrate-new m=<название>  # новая миграция Alembic
+make ci             # generate-check + lint + typecheck + test + build, как в CI
 ```
 
 Полный список команд и правила для агентов — в [AGENTS.md](AGENTS.md).
+
+## Конфигурация
+
+Переменные окружения backend читаются из `backend/.env` (образец — [`backend/.env.example`](backend/.env.example)), frontend — из `frontend/.env.local` ([`frontend/.env.example`](frontend/.env.example)). Значения по умолчанию подходят для локального запуска.
+
+| Переменная | По умолчанию | Назначение |
+|------------|--------------|------------|
+| `DATABASE_URL` | `postgresql+asyncpg://cal:cal@localhost:5432/cal` | Подключение к PostgreSQL |
+| `OWNER_TIMEZONE` | `Europe/Moscow` | Часовой пояс владельца (IANA) |
+| `WORK_DAYS` | `mon,tue,wed,thu,fri` | Рабочие дни |
+| `WORK_START`, `WORK_END` | `10:00`, `18:00` | Рабочие часы, кратны 30 минутам |
+| `BOOKING_MIN_NOTICE_MINUTES` | `120` | Не раньше чем через сколько минут можно записаться; `0` — без запаса |
+| `OWNER_NAME` | `Alexandr Kozhin` | Имя в профиле |
+| `OWNER_AVATAR_URL` | `/avatar.jpg` | Адрес аватара; пусто — инициалы |
+| `AI_API_KEY` | — | Ключ AI-провайдера; пусто — AI выключен (`ai_enabled: false`) |
+| `AI_BASE_URL`, `AI_MODEL` | OpenRouter, `anthropic/claude-haiku-4.5` | OpenAI-совместимый провайдер и модель (можно локальную) |
+| `API_URL` (frontend) | `http://localhost:8000` | Куда Next.js проксирует `/api/v1/*` |
+
+Неверное значение расписания останавливает запуск backend с понятной ошибкой.
+
+## Правила бронирования
+
+- Слоты начинаются на сетке 30 минут и целиком лежат в рабочем интервале; окно записи — сегодня и ещё 13 дней по календарю владельца.
+- Никакие две встречи, даже разных типов, не пересекаются по времени. Правило выполняется на сервере: время проверяется функцией слотов, а непересечение гарантирует ограничение PostgreSQL, поэтому одновременные запросы тоже не создают двойную запись (второй получает `409 slot_taken`).
+- Гость видит время в поясе владельца или в своём (переключатель на экране).
+
+## AI-подбор слотов
+
+Backend умеет подбирать слоты по фразе («на следующей неделе в обед по понедельникам»): `POST /api/v1/slot-suggestions`, агент LangChain с одним инструментом поиска слотов, слоты проверяются функцией слотов ([ADR-003](docs/decisions/003-ai-agent-langchain.md)). Нужен `AI_API_KEY`. **Вкладка «Подобрать с AI» на экране пока не подключена** (отложена, см. [roadmap](docs/roadmap.md)).
 
 ## Как проверить требования задания
 
 | # | Требование | Как проверить |
 |---|------------|---------------|
-| 1 | Backend и frontend запускаются локально | `make install`, затем `make dev-backend` и `curl localhost:8000/health` (ждём `{"status":"ok"}`); `make dev-frontend` и открыть http://localhost:3000 — заголовок «Запись на звонок» |
+| 1 | Backend и frontend запускаются локально | Шаги из раздела «Установка и запуск»; `curl localhost:8000/health` даёт `{"status":"ok"}`, на http://localhost:3000 — экран записи |
 | 2 | Есть команды тестов и линтера | `make help` показывает их; `make test` и `make lint` завершаются с кодом 0 |
 | 3 | GitHub Actions прогоняет тесты и линтер на каждый push, прогон зелёный | Вкладка Actions → workflow **CI** (jobs Backend и Frontend) зелёный на последнем коммите; `gh run list --workflow ci.yml` |
 | 4 | Conventional Commits; release-please создаёт release-PR после мержа в `main` | `git log --oneline` — все коммиты вида `type(scope): ...`; после мержа в `main` во вкладке Pull Requests появляется PR `chore(main): release X.Y.Z` от `release-please` |

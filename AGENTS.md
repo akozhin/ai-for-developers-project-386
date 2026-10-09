@@ -13,6 +13,8 @@
 | Запустить backend (http://localhost:8000) | `make dev-backend` |
 | Запустить frontend (http://localhost:3000) | `make dev-frontend` |
 | Запустить всё | `make dev` |
+| PostgreSQL в Docker / остановить | `make up` / `make down` (нужна для `make test-backend` и `make dev-backend`) |
+| Миграции | `make migrate`, `make migrate-new m=<название>` |
 | Начальные данные (типы 30 и 60 минут) | `make seed` (нужны запущенные backend и БД; повтор безопасен) |
 | **Тесты** | `make test` (`make test-backend`, `make test-frontend`) |
 | **Линтер** | `make lint` (ruff + ESLint + Prettier + tsp format) |
@@ -25,7 +27,7 @@
 Один тест:
 
 - backend: `cd backend && uv run pytest tests/test_health.py::test_health_returns_ok`
-- frontend: `cd frontend && pnpm vitest run tests/home.test.tsx` (или `-t "<имя>"`)
+- frontend: `cd frontend && pnpm vitest run tests/booking-screen.test.tsx` (или `-t "<имя>"`)
 
 ## Формат коммитов
 
@@ -43,9 +45,11 @@
 
 ## Архитектура
 
-- **Бизнес-логика только в backend** (расчёт слотов, бронирование); frontend — тонкий UI поверх REST `/api/v1/...`, `/health` — без версии. Контракт — Design First: **любое изменение API начинается с TypeSpec** (`api/`), затем `make generate`, затем код; сгенерированные файлы руками не правятся ([ADR-002](docs/decisions/002-api-contract-typespec.md)). `docs/concept/api-contracts.md` — устаревающий черновик (реализуется в sprint-02, пока есть только `/health`).
+- **Бизнес-логика только в backend** (расчёт слотов, бронирование); frontend — тонкий UI поверх REST `/api/v1/...`, `/health` — без версии. Контракт — Design First: **любое изменение API начинается с TypeSpec** (`api/`), затем `make generate`, затем код; сгенерированные файлы руками не правятся ([ADR-002](docs/decisions/002-api-contract-typespec.md)). `docs/concept/api-contracts.md` — краткий обзор контракта (источник правды — `api/main.tsp`).
 - Backend: `app/main.py` собирает приложение через `create_app()`, роутеры в `app/routers/` (1 роутер = 1 файл), настройки — `app/config.py` (pydantic-settings, fail-fast). БД — PostgreSQL (`make up`), миграции — Alembic (`make migrate`, `make migrate-new m=<название>`), сессия БД — зависимость `get_session` (`app/db.py`); ошибки API приводятся к формату контракта в `app/errors.py`; `/docs` и `/openapi.json` отдают закоммиченный `api/openapi.yaml`. Модели появляются по мере тикетов.
-- Двойное бронирование исключается ограничением в БД (`UNIQUE` по слоту); время хранится в UTC (`TIMESTAMPTZ`). См. `docs/concept/data-model.md`.
+- Структура backend: `app/slots.py` — расчёт слотов (одна функция для выдачи слотов, проверки бронирования и AI), `app/slot_search.py`/`app/slot_agent.py` — AI-подбор (ADR-003), `app/models.py`, `app/schemas.py`, `app/dependencies.py` (подменяемые в тестах `get_now` и `get_settings`), `app/errors.py` (формат ошибок контракта), `app/seed.py` (`make seed`, данные в `seed/event-types.json`).
+- Структура frontend: `app/page.tsx` — экран записи (`components/booking/`), `app/admin/` — страница владельца (`components/admin/`); запросы идут через SDK `lib/api/generated` и общий клиент `lib/api/client.ts` на тот же origin, Next.js проксирует `/api/v1/*` на backend (`rewrites`). Типизированные MSW-моки для тестов — в `frontend/mocks/`.
+- Двойное бронирование исключается ограничением в БД (`EXCLUDE` по диапазону времени: две встречи, даже разных типов, не пересекаются); время хранится в UTC (`TIMESTAMPTZ`). См. `docs/concept/data-model.md`.
 - Тесты backend: `asyncio_mode=auto`, приложение тестируется через `httpx.ASGITransport` без поднятия сервера на реальной PostgreSQL (перед `make test-backend` выполните `make up`; в CI БД — service container); данные очищаются после каждого теста; контракт проверяет Schemathesis (`tests/test_contract.py`).
 
 ## Особенности
@@ -70,4 +74,4 @@ Issues живут в GitHub Issues репозитория (`gh` CLI). См. `doc
 
 ### Domain docs
 
-Single-context: `GLOSSARY.md` в корне (когда появится), ADR — в `docs/decisions/`. См. `docs/agents/domain.md`.
+Single-context: `GLOSSARY.md` в корне, ADR — в `docs/decisions/`. См. `docs/agents/domain.md`.
