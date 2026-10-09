@@ -2,7 +2,8 @@ import { CalendarDays, Clock, Globe, Video } from "lucide-react";
 import type { FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Input, Textarea } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export type BookingFormValues = {
   name: string;
@@ -111,16 +112,21 @@ export function BookingForm({
           value={values.email}
           autoComplete="email"
           aria-invalid={emailInvalid}
+          aria-describedby={emailInvalid ? "email-error" : undefined}
           onChange={(event) =>
             onChange({ ...values, email: event.target.value })
           }
         />
-        {emailInvalid ? (
-          <span role="alert" className="text-xs font-normal text-destructive">
-            Укажите корректный адрес электронной почты
-          </span>
-        ) : null}
       </label>
+      {emailInvalid ? (
+        <span
+          id="email-error"
+          role="alert"
+          className="-mt-2 text-xs text-destructive"
+        >
+          Укажите корректный адрес электронной почты
+        </span>
+      ) : null}
       <label className="flex flex-col gap-1.5 text-sm font-medium">
         <span>
           Комментарий{" "}

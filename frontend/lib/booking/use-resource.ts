@@ -1,32 +1,44 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type Resource<T> =
   { status: "loading" } | { status: "error" } | { status: "ready"; data: T };
 
+type Loaded<T> = { key: string; version: number; value: Resource<T> };
+
 /**
- * Загружает данные при смене `load` (меняйте его через useCallback, чтобы перезагрузить).
- * Пока идёт новая загрузка, возвращает `loading`; устаревшие ответы отбрасываются.
+ * Загружает данные при смене `key` (другой ресурс) или `version` (повторная загрузка того же).
+ * Устаревшие ответы отбрасываются. При смене только `version` пока идёт загрузка остаются
+ * прежние данные, чтобы интерфейс не мерцал; при смене `key` показывается `loading`.
  */
-export function useResource<T>(load: () => Promise<T>): Resource<T> {
-  const [state, setState] = useState<{
-    source: () => Promise<T>;
-    value: Resource<T>;
-  } | null>(null);
+export function useResource<T>(
+  load: () => Promise<T>,
+  key: string,
+  version = 0,
+): Resource<T> {
+  const [state, setState] = useState<Loaded<T> | null>(null);
+  const latestLoad = useRef(load);
+
+  useEffect(() => {
+    latestLoad.current = load;
+  });
 
   useEffect(() => {
     let active = true;
-    load()
+    latestLoad
+      .current()
       .then((data) => {
         if (active)
-          setState({ source: load, value: { status: "ready", data } });
+          setState({ key, version, value: { status: "ready", data } });
       })
       .catch(() => {
-        if (active) setState({ source: load, value: { status: "error" } });
+        if (active) setState({ key, version, value: { status: "error" } });
       });
     return () => {
       active = false;
     };
-  }, [load]);
+  }, [key, version]);
 
-  return state?.source === load ? state.value : { status: "loading" };
+  if (state?.key === key && state.version === version) return state.value;
+  if (state?.key === key && state.value.status === "ready") return state.value;
+  return { status: "loading" };
 }

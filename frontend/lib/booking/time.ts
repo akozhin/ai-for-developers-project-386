@@ -1,19 +1,37 @@
 import type { Slot, SlotDay } from "@/lib/api/generated";
 
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+/** Форматтер с кэшем: создание `Intl.DateTimeFormat` дорого, а вызовов много. */
+function cachedFormatter(
+  timeZone: string,
+  locale: string,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  const id = `${locale}|${timeZone}|${JSON.stringify(options)}`;
+  let formatter = formatters.get(id);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, { ...options, timeZone });
+    formatters.set(id, formatter);
+  }
+  return formatter;
+}
+
 /** Дата календаря `YYYY-MM-DD` для момента времени в заданном часовом поясе. */
 export function dateKey(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone,
+  const parts = cachedFormatter(timeZone, "en-US", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date(iso));
+  }).formatToParts(new Date(iso));
+  const part = (type: string) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 /** Время `ЧЧ:ММ` в заданном часовом поясе. */
 export function timeLabel(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat("ru-RU", {
-    timeZone,
+  return cachedFormatter(timeZone, "ru-RU", {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",

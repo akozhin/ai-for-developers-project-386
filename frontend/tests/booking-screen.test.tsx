@@ -13,6 +13,7 @@ import type {
 } from "@/lib/api/generated";
 import {
   API,
+  bookingFor,
   bookingScreenHandlers,
   call30,
   mockProfile,
@@ -262,6 +263,61 @@ describe("главный экран записи", () => {
       ).not.toBeInTheDocument();
     },
   );
+
+  it("пока слоты перезагружаются, календарь и выбранный день остаются на месте", async () => {
+    const user = userEvent.setup();
+    let requests = 0;
+    server.use(
+      http.get(`${API}/event-types/call-30/slots`, async () => {
+        requests += 1;
+        if (requests > 1)
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        return HttpResponse.json<SlotsResponse>(bookingScreenHandlersSlots30());
+      }),
+      http.post(`${API}/bookings`, () =>
+        HttpResponse.json(
+          { code: "slot_taken", message: "служебный текст" },
+          { status: 409 },
+        ),
+      ),
+    );
+    render(<BookingScreen guestTimeZone="America/New_York" />);
+    await fillBooking(user);
+
+    await user.click(screen.getByRole("button", { name: "Забронировать" }));
+
+    expect(
+      await screen.findByText("Слот только что заняли"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("октябрь 2026")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Загружаем свободное время…"),
+    ).not.toBeInTheDocument();
+    await waitFor(() => expect(requests).toBe(2));
+  });
+
+  it("повторная отправка, пока идёт запрос, не создаёт вторую заявку", async () => {
+    const user = userEvent.setup();
+    let posts = 0;
+    server.use(
+      http.post(`${API}/bookings`, async ({ request }) => {
+        posts += 1;
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        const input = (await request.json()) as BookingInput;
+        return HttpResponse.json(bookingFor(input, call30), { status: 201 });
+      }),
+    );
+    render(<BookingScreen guestTimeZone="America/New_York" />);
+    await fillBooking(user);
+
+    await user.click(screen.getByRole("button", { name: "Забронировать" }));
+    await user.keyboard("{Enter}");
+
+    expect(
+      await screen.findByRole("heading", { name: "Встреча забронирована" }),
+    ).toBeInTheDocument();
+    expect(posts).toBe(1);
+  });
 
   it("неожиданная ошибка сервера показывает общее сообщение", async () => {
     const user = userEvent.setup();

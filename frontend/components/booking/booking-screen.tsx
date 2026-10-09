@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import "@/lib/api/client";
 import {
@@ -54,7 +54,10 @@ function Notice({
   onRetry?: () => void;
 }) {
   return (
-    <div role="status" className="flex flex-col items-start gap-2 text-sm">
+    <div
+      role={onRetry ? "alert" : "status"}
+      className="flex flex-col items-start gap-2 text-sm"
+    >
       <p className="text-muted-foreground">{children}</p>
       {onRetry ? (
         <button type="button" onClick={onRetry} className="underline">
@@ -73,34 +76,34 @@ export function BookingScreen({
   const [reloadKey, setReloadKey] = useState(0);
   const [slotsVersion, setSlotsVersion] = useState(0);
 
-  const loadProfile = useCallback(
+  const profile = useResource(
     async () => (await getProfile({ throwOnError: true })).data,
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reloadKey нужен для повтора
-    [reloadKey],
+    "profile",
+    reloadKey,
   );
-  const loadEventTypes = useCallback(
+  const eventTypes = useResource(
     async () => (await listEventTypes({ throwOnError: true })).data.items,
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reloadKey нужен для повтора
-    [reloadKey],
+    "event-types",
+    reloadKey,
   );
-  const profile = useResource(loadProfile);
-  const eventTypes = useResource(loadEventTypes);
 
   const [chosenTypeId, setChosenTypeId] = useState<string | null>(null);
   const types = eventTypes.status === "ready" ? eventTypes.data : [];
   const selectedType: EventType | undefined =
     types.find((type) => type.id === chosenTypeId) ?? types[0];
 
-  const loadSlots = useCallback(async () => {
-    if (!selectedType) return null;
-    const { data } = await getEventTypeSlots({
-      path: { id: selectedType.id },
-      throwOnError: true,
-    });
-    return data;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- slotsVersion перезагружает слоты
-  }, [selectedType?.id, slotsVersion]);
-  const slots = useResource(loadSlots);
+  const slots = useResource(
+    async () => {
+      if (!selectedType) return null;
+      const { data } = await getEventTypeSlots({
+        path: { id: selectedType.id },
+        throwOnError: true,
+      });
+      return data;
+    },
+    `slots:${selectedType?.id ?? ""}`,
+    slotsVersion,
+  );
 
   const [zoneMode, setZoneMode] = useState<TimeZoneOption["value"]>("owner");
   const ownerZone = profile.status === "ready" ? profile.data.timezone : "UTC";
@@ -150,6 +153,7 @@ export function BookingScreen({
     comment: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const submitInFlight = useRef(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [booked, setBooked] = useState<{
     booking: Booking;
@@ -171,7 +175,9 @@ export function BookingScreen({
       : null;
 
   async function submit() {
+    if (submitInFlight.current) return;
     if (!selectedSlot || !selectedType || !isFormValid(form)) return;
+    submitInFlight.current = true;
     setSubmitting(true);
     setBookingError(null);
     try {
@@ -202,6 +208,7 @@ export function BookingScreen({
     } catch {
       setBookingError(GENERIC_ERROR);
     } finally {
+      submitInFlight.current = false;
       setSubmitting(false);
       setSlotsVersion((version) => version + 1);
     }

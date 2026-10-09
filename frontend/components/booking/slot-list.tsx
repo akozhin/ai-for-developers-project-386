@@ -19,12 +19,14 @@ export function SlotList({
   return (
     <section className="flex flex-col gap-3">
       <div>
-        <h2 className="font-medium">Доступное время</h2>
+        <h2 id="slots-heading" className="font-medium">
+          Доступное время
+        </h2>
         <p className="text-sm text-muted-foreground">{longDateLabel(date)}</p>
       </div>
       <div
         role="group"
-        aria-label="Доступное время"
+        aria-labelledby="slots-heading"
         className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto pr-1"
       >
         {slots.map((slot) => (
