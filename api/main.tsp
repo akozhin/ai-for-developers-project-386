@@ -231,6 +231,8 @@ model BookingInput {
   /** Начало слота; должно совпадать со слотом из выдачи слотов. */
   starts_at: utcDateTime;
 
+  /** Без символа NUL: PostgreSQL не хранит его в тексте. */
+  @pattern("^[^\\u0000]+$")
   @minLength(1)
   @maxLength(100)
   guest_name: string;
@@ -239,6 +241,8 @@ model BookingInput {
   @maxLength(254)
   guest_email: string;
 
+  /** Без символа NUL: PostgreSQL не хранит его в тексте. */
+  @pattern("^[^\\u0000]*$")
   @maxLength(500)
   comment?: string;
 }

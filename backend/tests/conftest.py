@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from collections.abc import AsyncIterator, Callable, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 
+from app import models
 from app.config import Settings
 from app.db import get_session
 from app.dependencies import get_now, get_settings
@@ -173,3 +174,28 @@ def configure_settings(app: FastAPI) -> Callable[..., None]:
 def configure_schedule(configure_settings: Callable[..., None]) -> Callable[..., None]:
     """То же, что `configure_settings`; имя для тестов расписания и запаса до записи."""
     return configure_settings
+
+
+@pytest.fixture
+def insert_booking(engine: AsyncEngine) -> Callable[..., Awaitable[None]]:
+    """Вставить бронирование напрямую в БД (в обход API и проверок времени)."""
+
+    async def insert(
+        event_type_id: str,
+        starts_at: str,
+        ends_at: str,
+        guest_email: str = "anna@example.com",
+    ) -> None:
+        async with async_sessionmaker(engine)() as session:
+            session.add(
+                models.Booking(
+                    event_type_id=event_type_id,
+                    starts_at=datetime.fromisoformat(starts_at),
+                    ends_at=datetime.fromisoformat(ends_at),
+                    guest_name="Анна",
+                    guest_email=guest_email,
+                ),
+            )
+            await session.commit()
+
+    return insert

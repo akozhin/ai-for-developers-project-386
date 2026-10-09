@@ -3,8 +3,9 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, func, text
+from sqlalchemy.dialects.postgresql import ExcludeConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 
@@ -25,7 +26,16 @@ class Booking(Base):
     """Бронирование слота гостем (время в UTC)."""
 
     __tablename__ = "bookings"
-    __table_args__ = (CheckConstraint("ends_at > starts_at", name="ends_after_starts"),)
+    __table_args__ = (
+        CheckConstraint("ends_at > starts_at", name="ends_after_starts"),
+        # Два бронирования (любых типов) не пересекаются по времени; концы интервалов не включаются.
+        # Alembic autogenerate не сверяет EXCLUDE: DDL лежит в миграции bookings_do_not_overlap.
+        ExcludeConstraint(
+            (func.tstzrange(text("starts_at"), text("ends_at"), "[)"), "&&"),
+            using="gist",
+            name="bookings_no_overlap",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     event_type_id: Mapped[str] = mapped_column(ForeignKey("event_types.id"))
@@ -35,3 +45,5 @@ class Booking(Base):
     guest_email: Mapped[str] = mapped_column(String(254))
     comment: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    event_type: Mapped[EventType] = relationship(lazy="joined")

@@ -319,6 +319,8 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+          pattern: ^[^\u0000]+$
+          description: 'Без символа NUL: PostgreSQL не хранит его в тексте.'
         guest_email:
           type: string
           maxLength: 254
@@ -326,6 +328,8 @@ components:
         comment:
           type: string
           maxLength: 500
+          pattern: ^[^\u0000]*$
+          description: 'Без символа NUL: PostgreSQL не хранит его в тексте.'
       description: Данные для бронирования слота.
       examples:
         - event_type_id: call-30
