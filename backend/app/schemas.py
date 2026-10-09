@@ -3,8 +3,9 @@
 from datetime import date, datetime
 from typing import Annotated
 from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import AfterValidator, AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints
 
 # Символ NUL запрещён контрактом: PostgreSQL не хранит его в тексте.
 NO_NUL = r"^[^\u0000]+$"
@@ -100,3 +101,35 @@ class BookingList(BaseModel):
     """Список бронирований."""
 
     items: list[Booking]
+
+
+def _known_timezone(value: str) -> str:
+    try:
+        ZoneInfo(value)
+    except (ZoneInfoNotFoundError, ValueError, OSError) as error:  # «Europe» — каталог, не пояс
+        message = f"неизвестный часовой пояс IANA: {value}"
+        raise ValueError(message) from error
+    return value
+
+
+class SlotSuggestionInput(BaseModel):
+    """Пожелание гостя текстом."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    event_type_id: EventTypeId
+    text: Annotated[str, Field(min_length=1, max_length=500)]
+    timezone: Annotated[str, AfterValidator(_known_timezone)]
+
+
+class SuggestedSlot(Slot):
+    """Предложенный слот; лучший вариант помечен `recommended`."""
+
+    recommended: bool
+
+
+class SlotSuggestionResponse(BaseModel):
+    """Ответ агента: короткий текст и до трёх слотов."""
+
+    text: str
+    items: Annotated[list[SuggestedSlot], Field(max_length=3)]
