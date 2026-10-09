@@ -12,6 +12,7 @@ import { server } from "@/mocks/server";
 
 beforeAll(() => {
   process.env.API_URL = "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_URL = "http://localhost:8000";
   server.listen({ onUnhandledRequest: "error" });
 });
 afterEach(() => {
