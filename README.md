@@ -8,6 +8,18 @@
 Учебный проект Хекслета: https://ru.hexlet.io/programs/ai-for-developers
 Как это должно работать: https://files.hexlet.app/a/2ipc5m
 
+## Как это выглядит
+
+Упрощённый Cal.com: владелец публикует типы звонков, гость выбирает свободный слот на ближайшие 14 дней и записывается без регистрации. Двойное бронирование исключено — две встречи не пересекаются, даже если это разные типы.
+
+![Экран записи: календарь, слоты и форма подтверждения](docs/mockups/main.png)
+
+А ещё можно просто написать, когда удобно, и AI-агент подберёт подходящие слоты:
+
+![Режим «Подобрать с AI»](docs/mockups/book.png)
+
+> Это макеты: реализация идёт по [спецификации](https://github.com/akozhin/ai-for-developers-project-386/issues/14). Решения — в [docs/decisions/](docs/decisions/), словарь — в [GLOSSARY.md](GLOSSARY.md).
+
 ## Стек
 
 - **Backend:** Python 3.12, uv, FastAPI, SQLAlchemy 2 async, Alembic, PostgreSQL
