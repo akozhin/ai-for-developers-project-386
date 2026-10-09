@@ -4,6 +4,9 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+# Символ NUL запрещён контрактом: PostgreSQL не хранит его в тексте.
+NO_NUL = r"^[^\u0000]+$"
+
 EventTypeId = Annotated[
     str,
     StringConstraints(min_length=1, max_length=64, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$"),
@@ -16,8 +19,8 @@ class EventType(BaseModel):
     model_config = ConfigDict(extra="forbid", from_attributes=True)
 
     id: EventTypeId
-    title: Annotated[str, Field(min_length=1, max_length=100)]
-    description: Annotated[str, Field(min_length=1, max_length=500)]
+    title: Annotated[str, Field(min_length=1, max_length=100, pattern=NO_NUL)]
+    description: Annotated[str, Field(min_length=1, max_length=500, pattern=NO_NUL)]
     duration_minutes: Annotated[int, Field(ge=5, le=480)]
 
 

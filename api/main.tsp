@@ -130,10 +130,14 @@ model EventType {
   /** Читаемый идентификатор; задаёт владелец, уникален. */
   id: EventTypeId;
 
+  /** Без символа NUL: PostgreSQL не хранит его в тексте. */
+  @pattern("^[^\\u0000]+$")
   @minLength(1)
   @maxLength(100)
   title: string;
 
+  /** Без символа NUL: PostgreSQL не хранит его в тексте. */
+  @pattern("^[^\\u0000]+$")
   @minLength(1)
   @maxLength(500)
   description: string;

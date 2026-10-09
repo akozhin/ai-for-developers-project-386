@@ -358,10 +358,14 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+          pattern: ^[^\u0000]+$
+          description: 'Без символа NUL: PostgreSQL не хранит его в тексте.'
         description:
           type: string
           minLength: 1
           maxLength: 500
+          pattern: ^[^\u0000]+$
+          description: 'Без символа NUL: PostgreSQL не хранит его в тексте.'
         duration_minutes:
           type: integer
           format: int32

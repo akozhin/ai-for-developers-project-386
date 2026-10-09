@@ -93,6 +93,8 @@ async def test_list_is_sorted_by_duration(client: httpx.AsyncClient) -> None:
         ({"id": "a" * 65}, "id"),
         ({"title": ""}, "title"),
         ({"title": "т" * 101}, "title"),
+        ({"title": "до\x00после"}, "title"),
+        ({"description": "до\x00после"}, "description"),
         ({"description": ""}, "description"),
         ({"description": "о" * 501}, "description"),
         ({"duration_minutes": 4}, "duration_minutes"),
