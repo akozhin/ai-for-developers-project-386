@@ -60,6 +60,15 @@ class SlotsResponse(BaseModel):
     days: list[SlotDay]
 
 
+class Profile(BaseModel):
+    """Профиль владельца календаря."""
+
+    name: str
+    timezone: str
+    avatar_url: str | None
+    ai_enabled: bool
+
+
 class BookingInput(BaseModel):
     """Данные для бронирования слота (гость)."""
 

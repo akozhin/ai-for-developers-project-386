@@ -29,7 +29,7 @@ contract_app.dependency_overrides[get_session] = _session_per_request
 schema = schemathesis.openapi.from_asgi("/openapi.json", contract_app)
 
 # Маршруты, которых ещё нет в коде (слоты, бронирования, профиль, AI), добавляются по мере тикетов.
-IMPLEMENTED = r"^/(health|api/v1/(event-types(/\{id\}(/slots)?)?|bookings))$"
+IMPLEMENTED = r"^/(health|api/v1/(event-types(/\{id\}(/slots)?)?|bookings|profile))$"
 
 
 @schema.include(path_regex=IMPLEMENTED).parametrize()

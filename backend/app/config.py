@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Annotated, Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
@@ -27,6 +27,23 @@ class Settings(BaseSettings):
     work_start: time = time(10, 0)
     work_end: time = time(18, 0)
     booking_min_notice_minutes: int = Field(default=120, ge=0)
+
+    # Профиль владельца для шапки главного экрана; аватар по умолчанию лежит в public frontend.
+    owner_name: str = "Alexandr Kozhin"
+    owner_avatar_url: str | None = "/avatar.jpg"
+
+    # Ключ AI-провайдера; пустой — AI-подбор выключен.
+    ai_api_key: SecretStr | None = None
+
+    @field_validator("owner_avatar_url", "ai_api_key", mode="before")
+    @classmethod
+    def _blank_means_not_set(cls, value: Any) -> Any:  # noqa: ANN401
+        return None if isinstance(value, str) and not value.strip() else value
+
+    @property
+    def ai_enabled(self) -> bool:
+        """AI-подбор доступен, когда задан ключ провайдера."""
+        return self.ai_api_key is not None
 
     @field_validator("owner_timezone")
     @classmethod

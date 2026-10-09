@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from app.config import Settings
 from app.dependencies import get_settings
 from app.errors import register_error_handlers
-from app.routers import bookings, event_types, health
+from app.routers import bookings, event_types, health, profile
 
 
 def _load_contract() -> dict[str, Any]:
@@ -27,6 +27,7 @@ def create_app() -> FastAPI:
     application.include_router(health.router)
     application.include_router(event_types.router)
     application.include_router(bookings.router)
+    application.include_router(profile.router)
     return application
 
 

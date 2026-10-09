@@ -161,13 +161,19 @@ def freeze_now(app: FastAPI) -> Callable[[str], None]:
 
 
 @pytest.fixture
-def configure_schedule(app: FastAPI) -> Callable[..., None]:
-    """Подменить рабочее расписание и запас до записи (поля `Settings`)."""
+def configure_settings(app: FastAPI) -> Callable[..., None]:
+    """Подменить настройки приложения (поля `Settings`): расписание, профиль, ключ AI."""
 
     def configure(**fields: Any) -> None:  # noqa: ANN401
         app.dependency_overrides[get_settings] = lambda: IsolatedSettings(**fields)
 
     return configure
+
+
+@pytest.fixture
+def configure_schedule(configure_settings: Callable[..., None]) -> Callable[..., None]:
+    """То же, что `configure_settings`; имя для тестов расписания и запаса до записи."""
+    return configure_settings
 
 
 @pytest.fixture
