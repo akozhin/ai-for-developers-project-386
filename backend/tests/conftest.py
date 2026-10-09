@@ -134,7 +134,8 @@ def app(engine: AsyncEngine) -> FastAPI:
             yield session
 
     application.dependency_overrides[get_session] = override_session
-    application.dependency_overrides[get_settings] = IsolatedSettings
+    # Лямбда нужна: класс FastAPI принял бы за зависимость с параметрами запроса.
+    application.dependency_overrides[get_settings] = lambda: IsolatedSettings()  # noqa: PLW0108
     return application
 
 
