@@ -52,7 +52,13 @@ export type EventType = {
      * Читаемый идентификатор; задаёт владелец, уникален.
      */
     id: EventTypeId;
+    /**
+     * Без символа NUL: PostgreSQL не хранит его в тексте.
+     */
     title: string;
+    /**
+     * Без символа NUL: PostgreSQL не хранит его в тексте.
+     */
     description: string;
     /**
      * Длительность в минутах.

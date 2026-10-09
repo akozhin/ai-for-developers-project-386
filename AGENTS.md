@@ -13,6 +13,7 @@
 | Запустить backend (http://localhost:8000) | `make dev-backend` |
 | Запустить frontend (http://localhost:3000) | `make dev-frontend` |
 | Запустить всё | `make dev` |
+| Начальные данные (типы 30 и 60 минут) | `make seed` (нужны запущенные backend и БД; повтор безопасен) |
 | **Тесты** | `make test` (`make test-backend`, `make test-frontend`) |
 | **Линтер** | `make lint` (ruff + ESLint + Prettier + tsp format) |
 | Типы | `make typecheck` (mypy + tsc) |

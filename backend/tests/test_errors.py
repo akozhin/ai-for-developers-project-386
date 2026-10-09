@@ -97,3 +97,31 @@ async def test_unexpected_exception_returns_internal_error_without_details(
     assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert response.json() == {"code": "internal_error", "message": "Внутренняя ошибка"}
     assert "секретные" not in response.text
+
+
+async def test_wrong_method_lists_every_method_of_the_path(client: httpx.AsyncClient) -> None:
+    response = await client.request("OPTIONS", "/api/v1/event-types")
+
+    allowed = {method.strip() for method in response.headers["allow"].split(",")}
+    assert response.status_code == HTTPStatus.METHOD_NOT_ALLOWED
+    assert allowed == {"GET", "POST"}
+
+
+async def test_undecodable_body_returns_validation_error(
+    app: FastAPI,
+    client: httpx.AsyncClient,
+) -> None:
+    async def echo(payload: Payload) -> Payload:
+        return payload
+
+    app.add_api_route("/__echo", echo, methods=["POST"])
+
+    response = await client.post(
+        "/__echo",
+        content=b"\xff\xfe\x00\x80",
+        headers={"content-type": "application/json"},
+    )
+
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.json()["code"] == "validation_error"
+    assert [item["field"] for item in response.json()["fields"]] == ["body"]
