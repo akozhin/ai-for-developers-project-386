@@ -65,12 +65,13 @@ migrate: ## Применить миграции (появятся в sprint-02)
 migrate-new: ## Создать миграцию (появятся в sprint-02)
 	@echo "Миграции появятся в sprint-02 (Alembic ещё не инициализирован)"
 
-generate: ## Сгенерировать всё из контракта TypeSpec (api/main.tsp -> api/openapi.yaml)
+generate: ## Сгенерировать всё из контракта TypeSpec: OpenAPI и SDK frontend
 	cd api && pnpm build
 	@{ printf '# GENERATED из api/main.tsp командой `make generate`. НЕ ПРАВИТЬ РУКАМИ.\n'; cat api/openapi.yaml; } > api/openapi.yaml.tmp
 	@mv api/openapi.yaml.tmp api/openapi.yaml
+	cd frontend && pnpm generate:sdk
 
 generate-check: generate ## Проверить, что сгенерированное закоммичено и актуально
-	@test -z "$$(git status --porcelain -- api/openapi.yaml)" || { git --no-pager diff -- api/openapi.yaml; echo "Сгенерированные файлы устарели: выполните make generate и закоммитьте результат"; exit 1; }
+	@test -z "$$(git status --porcelain -- api/openapi.yaml frontend/lib/api/generated)" || { git --no-pager diff --stat -- api/openapi.yaml frontend/lib/api/generated; echo "Сгенерированные файлы устарели: выполните make generate и закоммитьте результат"; exit 1; }
 
 ci: generate-check lint typecheck test build ## Полный прогон как в CI

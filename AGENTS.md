@@ -18,7 +18,7 @@
 | Типы | `make typecheck` (mypy + tsc) |
 | Автоисправление | `make format` |
 | Сборка frontend | `make build` |
-| **Генерация из контракта** | `make generate` (TypeSpec → `api/openapi.yaml`; позже и SDK frontend); `make generate-check` падает, если результат не закоммичен |
+| **Генерация из контракта** | `make generate` (TypeSpec → `api/openapi.yaml` → SDK frontend в `frontend/lib/api/generated`); `make generate-check` падает, если результат не закоммичен |
 | Полный прогон как в CI | `make ci` |
 
 Один тест:
