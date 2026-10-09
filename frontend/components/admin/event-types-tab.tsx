@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { browserApi } from "@/lib/api/browser";
+import "@/lib/api/client";
 import { createEventType, listEventTypes } from "@/lib/api/generated";
 import type { EventType, FieldError } from "@/lib/api/generated";
 
@@ -28,7 +28,6 @@ export function EventTypesTab() {
   const load = useCallback(async () => {
     try {
       const { data } = await listEventTypes({
-        ...browserApi(),
         throwOnError: true,
       });
       setList({ status: "ready", items: data.items });
@@ -48,7 +47,6 @@ export function EventTypesTab() {
     setErrors({ fields: {} });
     try {
       const result = await createEventType({
-        ...browserApi(),
         body: {
           id: form.id,
           title: form.title,

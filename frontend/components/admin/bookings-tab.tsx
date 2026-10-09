@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { browserApi } from "@/lib/api/browser";
+import "@/lib/api/client";
 import { getProfile, listBookings } from "@/lib/api/generated";
 import type { Booking } from "@/lib/api/generated";
 import { monthKey, monthTitle, nextMonthKey } from "@/lib/months";
@@ -22,8 +22,8 @@ export function BookingsTab() {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      listBookings({ ...browserApi(), throwOnError: true }),
-      getProfile({ ...browserApi(), throwOnError: true }),
+      listBookings({ throwOnError: true }),
+      getProfile({ throwOnError: true }),
     ])
       .then(([bookings, profile]) => {
         if (cancelled) return;

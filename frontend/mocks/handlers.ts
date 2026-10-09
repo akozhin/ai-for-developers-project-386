@@ -5,10 +5,10 @@ import type { BookingList, EventTypeList, Profile } from "@/lib/api/generated";
 import { mockBookings, mockProfile } from "./bookings";
 import { mockEventTypes } from "./event-types";
 
-export const EVENT_TYPES_URL = "http://localhost:8000/api/v1/event-types";
+export const EVENT_TYPES_URL = "http://localhost:3000/api/v1/event-types";
 
-export const BOOKINGS_URL = "http://localhost:8000/api/v1/bookings";
-export const PROFILE_URL = "http://localhost:8000/api/v1/profile";
+export const BOOKINGS_URL = "http://localhost:3000/api/v1/bookings";
+export const PROFILE_URL = "http://localhost:3000/api/v1/profile";
 
 export const handlers = [
   http.get(EVENT_TYPES_URL, () =>
