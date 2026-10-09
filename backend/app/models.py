@@ -29,6 +29,7 @@ class Booking(Base):
     __table_args__ = (
         CheckConstraint("ends_at > starts_at", name="ends_after_starts"),
         # Два бронирования (любых типов) не пересекаются по времени; концы интервалов не включаются.
+        # Alembic autogenerate не сверяет EXCLUDE: DDL лежит в миграции bookings_do_not_overlap.
         ExcludeConstraint(
             (func.tstzrange(text("starts_at"), text("ends_at"), "[)"), "&&"),
             using="gist",

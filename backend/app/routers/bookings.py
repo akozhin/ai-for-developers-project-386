@@ -26,6 +26,15 @@ def _slot_taken() -> ApiError:
     return ApiError(HTTPStatus.CONFLICT, "slot_taken", "Слот только что заняли")
 
 
+async def _overlaps_existing_booking(session: AsyncSession, slot: slots.Slot) -> bool:
+    """Быстрая проверка пересечения; окончательный арбитр — ограничение БД."""
+    overlaps = exists().where(
+        models.Booking.starts_at < slot.ends_at,
+        models.Booking.ends_at > slot.starts_at,
+    )
+    return bool(await session.scalar(select(overlaps)))
+
+
 @router.post("", status_code=HTTPStatus.CREATED, response_model_exclude_none=True)
 async def create_booking(
     body: schemas.BookingInput,
@@ -49,11 +58,7 @@ async def create_booking(
             "slot_not_available",
             "Время недоступно, выберите другое",
         )
-    overlaps = exists().where(
-        models.Booking.starts_at < slot.ends_at,
-        models.Booking.ends_at > slot.starts_at,
-    )
-    if await session.scalar(select(overlaps)):
+    if await _overlaps_existing_booking(session, slot):
         raise _slot_taken()
 
     booking = models.Booking(

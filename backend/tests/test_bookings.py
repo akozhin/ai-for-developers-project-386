@@ -1,17 +1,15 @@
 """Бронирования: создание гостем, список предстоящих встреч владельца, защита от пересечений."""
 
 import asyncio
-from collections.abc import Callable
-from datetime import datetime
+from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 from typing import Any
 
 import httpx
 import pytest
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
-from app import models
+from app.routers import bookings
 
 CALL_30 = {
     "id": "call-30",
@@ -334,30 +332,16 @@ async def test_list_is_sorted_by_start_and_mixes_event_types(
     ]
 
 
-async def insert_past_booking(engine: AsyncEngine, starts_at: str, ends_at: str) -> None:
-    async with async_sessionmaker(engine)() as session:
-        session.add(
-            models.Booking(
-                event_type_id="call-30",
-                starts_at=datetime.fromisoformat(starts_at),
-                ends_at=datetime.fromisoformat(ends_at),
-                guest_name="Давно",
-                guest_email="old@example.com",
-            ),
-        )
-        await session.commit()
-
-
 async def test_list_contains_only_upcoming_bookings(
     client: httpx.AsyncClient,
-    engine: AsyncEngine,
+    insert_booking: Callable[..., Awaitable[None]],
     freeze_now: Callable[[str], None],
     configure_schedule: Callable[..., None],
 ) -> None:
     await prepare(client, freeze_now, configure_schedule)  # «сейчас» 2026-10-12T06:00Z
-    await insert_past_booking(engine, "2026-10-11T07:00:00+00:00", "2026-10-11T07:30:00+00:00")
-    await insert_past_booking(engine, "2026-10-12T05:30:00+00:00", "2026-10-12T06:00:00+00:00")
-    await insert_past_booking(engine, "2026-10-12T06:00:00+00:00", "2026-10-12T06:30:00+00:00")
+    await insert_booking("call-30", "2026-10-11T07:00:00+00:00", "2026-10-11T07:30:00+00:00")
+    await insert_booking("call-30", "2026-10-12T05:30:00+00:00", "2026-10-12T06:00:00+00:00")
+    await insert_booking("call-30", "2026-10-12T06:00:00+00:00", "2026-10-12T06:30:00+00:00")
 
     assert await booking_ids(client) == [
         "2026-10-12T06:00:00Z"
@@ -367,31 +351,17 @@ async def test_list_contains_only_upcoming_bookings(
 # ───────────────────────── ограничение БД и гонки ─────────────────────────
 
 
-async def insert_booking_row(engine: AsyncEngine, starts_at: str, ends_at: str) -> None:
-    async with async_sessionmaker(engine)() as session:
-        session.add(
-            models.Booking(
-                event_type_id="call-30",
-                starts_at=datetime.fromisoformat(starts_at),
-                ends_at=datetime.fromisoformat(ends_at),
-                guest_name="Анна",
-                guest_email="anna@example.com",
-            ),
-        )
-        await session.commit()
-
-
 async def test_database_rejects_overlapping_bookings_but_allows_back_to_back(
     client: httpx.AsyncClient,
-    engine: AsyncEngine,
+    insert_booking: Callable[..., Awaitable[None]],
 ) -> None:
     await client.post("/api/v1/event-types", json=CALL_30)
-    await insert_booking_row(engine, "2026-10-12T09:00:00+00:00", "2026-10-12T10:00:00+00:00")
+    await insert_booking("call-30", "2026-10-12T09:00:00+00:00", "2026-10-12T10:00:00+00:00")
 
-    await insert_booking_row(engine, "2026-10-12T10:00:00+00:00", "2026-10-12T10:30:00+00:00")
-    await insert_booking_row(engine, "2026-10-12T08:30:00+00:00", "2026-10-12T09:00:00+00:00")
+    await insert_booking("call-30", "2026-10-12T10:00:00+00:00", "2026-10-12T10:30:00+00:00")
+    await insert_booking("call-30", "2026-10-12T08:30:00+00:00", "2026-10-12T09:00:00+00:00")
     with pytest.raises(IntegrityError, match="bookings_no_overlap"):
-        await insert_booking_row(engine, "2026-10-12T09:30:00+00:00", "2026-10-12T10:30:00+00:00")
+        await insert_booking("call-30", "2026-10-12T09:30:00+00:00", "2026-10-12T10:30:00+00:00")
 
 
 async def test_simultaneous_requests_for_one_slot_create_exactly_one_booking(
@@ -430,3 +400,24 @@ async def test_simultaneous_requests_for_overlapping_types_create_one_booking(
     statuses = sorted(response.status_code for response in responses)
     assert statuses == [HTTPStatus.CREATED, HTTPStatus.CONFLICT]
     assert len(await booking_ids(client)) == 1
+
+
+async def test_database_constraint_alone_reports_slot_taken(
+    client: httpx.AsyncClient,
+    freeze_now: Callable[[str], None],
+    configure_schedule: Callable[..., None],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await prepare(client, freeze_now, configure_schedule)
+    await post(client, booking())
+
+    async def never_overlaps(*_: object) -> bool:
+        return False
+
+    # Без быстрой предпроверки пересечение ловит только ограничение БД — как при гонке запросов.
+    monkeypatch.setattr(bookings, "_overlaps_existing_booking", never_overlaps)
+    response = await post(client, booking(guest_email="boris@example.com"))
+
+    assert response.status_code == HTTPStatus.CONFLICT
+    assert response.json()["code"] == "slot_taken"
+    assert await booking_ids(client) == [NOON]
