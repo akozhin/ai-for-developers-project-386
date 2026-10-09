@@ -1,6 +1,6 @@
 # API Contracts
 
-> **Статус:** черновик контракта. Реализуется с sprint-02; в sprint-01 существует только `/health`.
+> **Статус:** черновик контракта. Реализуется с sprint-03; в sprint-01 существует только `/health`. `GET /event-types` уже используется frontend на моках (sprint-02).
 > **Базовый URL:** `http://localhost:8000`. **Версия:** `v1` (`/api/v1/...`), `/health` — без версии.
 > **Авторизации нет** (MVP).
 
@@ -27,18 +27,28 @@
 | Метод | Путь | Код | Сценарий | Спринт |
 |-------|------|:---:|----------|:------:|
 | `GET` | `/health` | 200 | Проверка работоспособности | 01 ✅ |
-| `POST` | `/api/v1/event-types` | 201 | Создать тип звонка (владелец) | 02 |
-| `GET` | `/api/v1/event-types` | 200 | Список типов звонков | 02 |
-| `PUT` | `/api/v1/event-types/{id}/availability` | 200 | Задать правила доступности | 02 |
-| `GET` | `/api/v1/event-types/{id}/slots?date=YYYY-MM-DD` | 200 | Свободные слоты на дату | 02 |
-| `POST` | `/api/v1/bookings` | 201 / 409 | Записаться на слот | 02 |
-| `GET` | `/api/v1/bookings` | 200 | Предстоящие записи (владелец) | 02 |
+| `POST` | `/api/v1/event-types` | 201 | Создать тип звонка (владелец) | 03 |
+| `GET` | `/api/v1/event-types` | 200 | Список типов звонков | 03 |
+| `PUT` | `/api/v1/event-types/{id}/availability` | 200 | Задать правила доступности | 03 |
+| `GET` | `/api/v1/event-types/{id}/slots?date=YYYY-MM-DD` | 200 | Свободные слоты на дату | 03 |
+| `POST` | `/api/v1/bookings` | 201 / 409 | Записаться на слот | 03 |
+| `GET` | `/api/v1/bookings` | 200 | Предстоящие записи (владелец) | 03 |
 
 ---
 
 ## GET /health
 
 Ответ `200`: `{"status": "ok"}`
+
+## GET /api/v1/event-types
+
+Ответ `200`:
+
+```json
+{ "items": [ { "id": "uuid", "title": "Консультация", "duration_minutes": 30 } ] }
+```
+
+Пустой список — `{ "items": [] }`.
 
 ## GET /api/v1/event-types/{id}/slots
 

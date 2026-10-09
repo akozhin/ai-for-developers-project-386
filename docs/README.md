@@ -14,3 +14,4 @@
 ## План
 - [roadmap.md](roadmap.md)
 - [sprint-01-scaffold-ci](sprints/sprint-01-scaffold-ci/README.md)
+- [sprint-02-landing](sprints/sprint-02-landing/README.md)
