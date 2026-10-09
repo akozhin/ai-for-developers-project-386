@@ -41,7 +41,7 @@
 
 ## Архитектура
 
-- **Бизнес-логика только в backend** (расчёт слотов, бронирование); frontend — тонкий UI поверх REST `/api/v1/...`, `/health` — без версии. Контракты — `docs/concept/api-contracts.md` (черновик; реализуется в sprint-02, пока есть только `/health`).
+- **Бизнес-логика только в backend** (расчёт слотов, бронирование); frontend — тонкий UI поверх REST `/api/v1/...`, `/health` — без версии. Контракт — Design First: **любое изменение API начинается с TypeSpec** (`api/`), затем перегенерируется `api/openapi.yaml`, затем код ([ADR-002](docs/decisions/002-api-contract-typespec.md)). `docs/concept/api-contracts.md` — устаревающий черновик (реализуется в sprint-02, пока есть только `/health`).
 - Backend: `app/main.py` собирает приложение через `create_app()`, роутеры в `app/routers/` (1 роутер = 1 файл), настройки — `app/config.py` (pydantic-settings, fail-fast). БД, Alembic и модели пока не созданы (YAGNI до sprint-02), `make migrate*` — заглушки.
 - Двойное бронирование исключается ограничением в БД (`UNIQUE` по слоту); время хранится в UTC (`TIMESTAMPTZ`). См. `docs/concept/data-model.md`.
 - Тесты backend: `asyncio_mode=auto`, приложение тестируется через `httpx.ASGITransport` без поднятия сервера.
