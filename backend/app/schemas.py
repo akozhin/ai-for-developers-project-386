@@ -54,3 +54,12 @@ class SlotsResponse(BaseModel):
 
     timezone: str
     days: list[SlotDay]
+
+
+class Profile(BaseModel):
+    """Профиль владельца календаря."""
+
+    name: str
+    timezone: str
+    avatar_url: str | None
+    ai_enabled: bool
