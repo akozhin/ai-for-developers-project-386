@@ -35,14 +35,9 @@ class Settings(BaseSettings):
     # Ключ AI-провайдера; пустой — AI-подбор выключен.
     ai_api_key: SecretStr | None = None
 
-    @field_validator("owner_avatar_url", mode="before")
+    @field_validator("owner_avatar_url", "ai_api_key", mode="before")
     @classmethod
-    def _blank_avatar_means_none(cls, value: Any) -> Any:  # noqa: ANN401
-        return None if isinstance(value, str) and not value.strip() else value
-
-    @field_validator("ai_api_key", mode="before")
-    @classmethod
-    def _blank_key_means_none(cls, value: Any) -> Any:  # noqa: ANN401
+    def _blank_means_not_set(cls, value: Any) -> Any:  # noqa: ANN401
         return None if isinstance(value, str) and not value.strip() else value
 
     @property

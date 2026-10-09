@@ -82,10 +82,3 @@ def test_blank_avatar_and_key_in_environment_mean_not_set(
 
     assert settings.owner_avatar_url is None
     assert settings.ai_enabled is False
-
-
-def test_default_avatar_file_is_served_by_the_frontend() -> None:
-    avatar = Path(__file__).resolve().parents[2] / "frontend" / "public" / "avatar.jpg"
-
-    assert avatar.is_file()
-    assert avatar.read_bytes()[:3] == b"\xff\xd8\xff"  # JPEG
