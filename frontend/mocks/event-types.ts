@@ -1,14 +1,16 @@
-import type { EventType } from "@/lib/api/event-types";
+import type { EventType } from "@/lib/api/generated";
 
 export const mockEventTypes: EventType[] = [
   {
-    id: "5f0c2a3e-7a1e-4b8e-9c1d-1f6f1b0a0001",
+    id: "call-30",
     title: "Консультация",
+    description: "Короткий созвон: знакомство или быстрый вопрос",
     duration_minutes: 30,
   },
   {
-    id: "5f0c2a3e-7a1e-4b8e-9c1d-1f6f1b0a0002",
+    id: "call-60",
     title: "Разбор кода",
+    description: "Подробный разбор задачи или проекта",
     duration_minutes: 60,
   },
 ];

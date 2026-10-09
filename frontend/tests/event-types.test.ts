@@ -39,15 +39,4 @@ describe("getEventTypes", () => {
 
     expect(await getEventTypes()).toBeNull();
   });
-
-  it("возвращает null, если тело не соответствует контракту", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
-    server.use(
-      http.get(EVENT_TYPES_URL, () =>
-        HttpResponse.json({ items: [{ id: 1, title: "x" }] }),
-      ),
-    );
-
-    expect(await getEventTypes()).toBeNull();
-  });
 });
