@@ -65,11 +65,12 @@ def compute_slot_days(
     for day in window_dates(now, settings):
         slots: list[Slot] = []
         if day.weekday() in working_weekdays:
-            opens = datetime.combine(day, settings.work_start, zone)
-            closes = datetime.combine(day, settings.work_end, zone)
-            start = opens
+            # Границы дня переводятся в UTC до арифметики: в день смены летнего времени
+            # интервал длится столько реального времени, сколько прошло между границами.
+            start = datetime.combine(day, settings.work_start, zone).astimezone(UTC)
+            closes = datetime.combine(day, settings.work_end, zone).astimezone(UTC)
             while start + duration <= closes:
-                slot = Slot(start.astimezone(UTC), (start + duration).astimezone(UTC))
+                slot = Slot(start, start + duration)
                 if slot.starts_at >= earliest and not _overlaps_any(slot, busy):
                     slots.append(slot)
                 start += step

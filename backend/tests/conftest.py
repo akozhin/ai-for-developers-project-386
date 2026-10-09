@@ -12,6 +12,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
+from pydantic_settings import SettingsConfigDict
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
@@ -26,6 +27,13 @@ from app.config import Settings
 from app.db import get_session
 from app.dependencies import get_now, get_settings
 from app.main import create_app
+
+
+class IsolatedSettings(Settings):
+    """Настройки без чтения `.env`: результат тестов не зависит от файла разработчика."""
+
+    model_config = SettingsConfigDict(env_file=None)
+
 
 ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
 TEST_DATABASE_URL = os.environ.setdefault(
@@ -126,6 +134,7 @@ def app(engine: AsyncEngine) -> FastAPI:
             yield session
 
     application.dependency_overrides[get_session] = override_session
+    application.dependency_overrides[get_settings] = IsolatedSettings
     return application
 
 
@@ -143,6 +152,7 @@ def freeze_now(app: FastAPI) -> Callable[[str], None]:
 
     def freeze(moment: str) -> None:
         frozen = datetime.fromisoformat(moment)
+        assert frozen.tzinfo is not None, "«сейчас» в тестах задаётся с часовым поясом"
         app.dependency_overrides[get_now] = lambda: frozen
 
     return freeze
@@ -153,6 +163,6 @@ def configure_schedule(app: FastAPI) -> Callable[..., None]:
     """Подменить рабочее расписание и запас до записи (поля `Settings`)."""
 
     def configure(**fields: Any) -> None:  # noqa: ANN401
-        app.dependency_overrides[get_settings] = lambda: Settings(**fields)
+        app.dependency_overrides[get_settings] = lambda: IsolatedSettings(**fields)
 
     return configure

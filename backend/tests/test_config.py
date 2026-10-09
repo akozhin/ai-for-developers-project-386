@@ -1,6 +1,7 @@
 """Конфигурация рабочего расписания: значения по умолчанию и fail-fast при ошибках."""
 
 from datetime import time
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -9,7 +10,11 @@ from app.config import Settings
 from app.main import create_app
 
 
-def test_default_schedule_is_weekdays_ten_to_eighteen_in_moscow() -> None:
+def test_default_schedule_is_weekdays_ten_to_eighteen_in_moscow(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(tmp_path)  # нет файла .env — действуют значения по умолчанию
     settings = Settings()
 
     assert settings.owner_timezone == "Europe/Moscow"

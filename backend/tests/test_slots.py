@@ -145,7 +145,9 @@ async def test_today_is_present_but_empty_after_working_hours(
 
     assert len(days) == 14  # noqa: PLR2004
     assert days[0] == {"date": "2026-10-12", "slots": []}
-    assert days[1]["slots"] != []
+    assert days[1]["slots"][0] == slot(
+        "2026-10-13T07:00:00Z", "2026-10-13T07:30:00Z"
+    )  # вторник 10:00
 
 
 async def test_weekend_days_are_empty_and_weekdays_are_not(
@@ -161,8 +163,8 @@ async def test_weekend_days_are_empty_and_weekdays_are_not(
 
     by_date = {day["date"]: day["slots"] for day in days}
     assert by_date["2026-10-17"] == [] == by_date["2026-10-18"]  # суббота и воскресенье
-    assert by_date["2026-10-16"] != []
-    assert by_date["2026-10-19"] != []
+    assert len(by_date["2026-10-16"]) == 16  # пятница  # noqa: PLR2004
+    assert len(by_date["2026-10-19"]) == 16  # понедельник  # noqa: PLR2004
 
 
 async def test_window_starts_on_the_owner_calendar_day_not_the_utc_day(
@@ -292,3 +294,45 @@ async def test_booking_of_the_same_type_hides_its_own_slot(
 
     assert starts(monday)[0] == "2026-10-12T07:30:00Z"
     assert len(monday["slots"]) == 15  # noqa: PLR2004
+
+
+async def test_day_of_daylight_saving_change_counts_real_elapsed_time(
+    client: httpx.AsyncClient,
+    freeze_now: Callable[[str], None],
+    configure_schedule: Callable[..., None],
+) -> None:
+    await client.post("/api/v1/event-types", json=CALL_30)
+    freeze_now("2026-10-24T10:00:00+00:00")
+    # 25 октября 2026 в Берлине переводят часы назад: интервал 01:00–04:00 длится четыре часа.
+    configure_schedule(
+        owner_timezone="Europe/Berlin",
+        work_days=["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+        work_start="01:00",
+        work_end="04:00",
+        booking_min_notice_minutes=0,
+    )
+
+    change_day = (await get_days(client, "call-30"))[1]
+
+    assert change_day["date"] == "2026-10-25"
+    assert len(change_day["slots"]) == 8  # noqa: PLR2004
+    assert change_day["slots"][0] == slot("2026-10-24T23:00:00Z", "2026-10-24T23:30:00Z")
+    assert change_day["slots"][-1] == slot("2026-10-25T02:30:00Z", "2026-10-25T03:00:00Z")
+
+
+async def test_both_durations_use_the_same_grid_but_fit_differently(
+    client: httpx.AsyncClient,
+    freeze_now: Callable[[str], None],
+    configure_schedule: Callable[..., None],
+) -> None:
+    await client.post("/api/v1/event-types", json=CALL_30)
+    await client.post("/api/v1/event-types", json=CALL_60)
+    freeze_now(MONDAY_MORNING)
+    configure_schedule(booking_min_notice_minutes=0)
+
+    short = (await get_days(client, "call-30"))[0]
+    long = (await get_days(client, "call-60"))[0]
+
+    assert len(short["slots"]) == 16  # noqa: PLR2004
+    assert len(long["slots"]) == 15  # noqa: PLR2004
+    assert set(starts(long)) < set(starts(short))
