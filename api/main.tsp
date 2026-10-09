@@ -125,6 +125,7 @@ interface System {
   description: "Короткий созвон: знакомство или быстрый вопрос",
   duration_minutes: 30,
 })
+@extension("additionalProperties", false)
 model EventType {
   /** Читаемый идентификатор; задаёт владелец, уникален. */
   id: EventTypeId;
@@ -219,6 +220,7 @@ model SlotsResponse {
   guest_email: "anna@example.com",
   comment: "Хочу обсудить проект",
 })
+@extension("additionalProperties", false)
 model BookingInput {
   event_type_id: EventTypeId;
 
@@ -340,6 +342,7 @@ interface ProfileApi {
   text: "На следующей неделе могу в понедельник, среду или пятницу в обед",
   timezone: "Europe/Moscow",
 })
+@extension("additionalProperties", false)
 model SlotSuggestionInput {
   event_type_id: EventTypeId;
 

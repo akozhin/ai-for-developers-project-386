@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
 
 import httpx
@@ -18,12 +18,13 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from app.db import get_session
 from app.main import create_app
 
 ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
-TEST_DATABASE_URL = os.environ.get(
+TEST_DATABASE_URL = os.environ.setdefault(
     "TEST_DATABASE_URL",
     "postgresql+asyncpg://cal:cal@localhost:5432/cal_test",
 )
@@ -87,6 +88,22 @@ async def engine(database_url: str) -> AsyncIterator[AsyncEngine]:
     finally:
         await _truncate_all_tables(test_engine)
         await test_engine.dispose()
+
+
+@pytest.fixture(scope="module")
+def clean_database(database_url: str) -> Iterator[None]:
+    """Очистка данных до и после модуля с синхронными тестами (Schemathesis)."""
+
+    async def reset() -> None:
+        engine = create_async_engine(database_url, poolclass=NullPool)
+        try:
+            await _truncate_all_tables(engine)
+        finally:
+            await engine.dispose()
+
+    asyncio.run(reset())
+    yield
+    asyncio.run(reset())
 
 
 @pytest.fixture

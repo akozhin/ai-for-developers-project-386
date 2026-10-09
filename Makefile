@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help install generate generate-check lint-api dev dev-backend dev-frontend lint lint-backend lint-frontend format typecheck typecheck-backend typecheck-frontend test test-backend test-frontend build up down migrate migrate-new ci
+.PHONY: help install seed generate generate-check lint-api dev dev-backend dev-frontend lint lint-backend lint-frontend format typecheck typecheck-backend typecheck-frontend test test-backend test-frontend build up down migrate migrate-new ci
 
 help: ## Показать список команд
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -65,6 +65,9 @@ migrate: ## Применить миграции (alembic upgrade head)
 migrate-new: ## Создать миграцию: make migrate-new m=add_event_types
 	@test -n "$(m)" || { echo "Укажите название: make migrate-new m=add_event_types"; exit 1; }
 	cd backend && uv run alembic revision --autogenerate -m "$(m)"
+
+seed: ## Создать начальные типы событий (30 и 60 минут) через API; нужен запущенный backend
+	cd backend && uv run python -m app.seed
 
 generate: ## Сгенерировать всё из контракта TypeSpec: OpenAPI и SDK frontend
 	cd api && pnpm build

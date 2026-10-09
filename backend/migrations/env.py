@@ -8,6 +8,7 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from app import models  # noqa: F401  (модели должны быть импортированы для autogenerate)
 from app.config import Settings
 from app.db import Base
 

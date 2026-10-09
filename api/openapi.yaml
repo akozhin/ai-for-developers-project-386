@@ -333,6 +333,7 @@ components:
           guest_name: Анна
           guest_email: anna@example.com
           comment: Хочу обсудить проект
+      additionalProperties: false
     BookingList:
       type: object
       required:
@@ -373,6 +374,7 @@ components:
           title: Звонок 30 минут
           description: 'Короткий созвон: знакомство или быстрый вопрос'
           duration_minutes: 30
+      additionalProperties: false
     EventTypeExists:
       type: object
       required:
@@ -549,6 +551,7 @@ components:
         - event_type_id: call-30
           text: На следующей неделе могу в понедельник, среду или пятницу в обед
           timezone: Europe/Moscow
+      additionalProperties: false
     SlotSuggestionResponse:
       type: object
       required:
