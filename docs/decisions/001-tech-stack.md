@@ -11,7 +11,7 @@
 - **Монорепо** `backend/` + `frontend/`: один репозиторий Hexlet, единый CI и один релизный поток.
 - **Backend:** Python 3.12, uv, FastAPI + uvicorn, SQLAlchemy 2 async, Alembic, asyncpg, Pydantic v2; ruff (`select = ["ALL"]`), mypy strict, pytest + pytest-asyncio + httpx.
 - **Frontend:** Next.js (App Router) + React, TypeScript strict, Tailwind 4, shadcn/ui, pnpm, ESLint + Prettier, **Vitest** + Testing Library.
-- **БД:** PostgreSQL, PK — `UUID`.
+- **БД:** PostgreSQL, PK — `UUID` (исключение: у типа события PK — slug, который задаёт владелец; см. тикет «Сущности и схемы контракта»).
 - **Команды:** только через `make`; CI вызывает те же цели.
 - **Релизы:** release-please (`release-type: simple`, одна версия на монорепо), Conventional Commits, squash merge.
 - Файл `.github/workflows/hexlet-check.yml` не изменяется (требование Hexlet).
