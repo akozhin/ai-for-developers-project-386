@@ -8,7 +8,7 @@
 |-----------|-----------------|----------------|
 | Frontend (Next.js) | UI, запросы к API, отображение слотов | Расчёт слотов, правила бронирования |
 | Backend (FastAPI) | Бизнес-логика, валидация, REST API | Рендеринг UI |
-| PostgreSQL | Хранение, гарантия уникальности слота | Бизнес-правила |
+| PostgreSQL | Хранение, гарантия непересечения броней (`EXCLUDE`) | Бизнес-правила |
 
 Бизнес-логика живёт **только в backend**.
 
@@ -19,7 +19,7 @@
 ```mermaid
 graph TB
     Browser[Браузер] -->|HTTP| FE[frontend :3000]
-    FE -->|REST /api/v1| BE[backend :8000]
+    FE -->|rewrites /api/v1/*| BE[backend :8000]
     BE -->|asyncpg| DB[(postgres :5432)]
 ```
 
@@ -34,17 +34,20 @@ sequenceDiagram
     participant BE as Backend
     participant DB as PostgreSQL
 
-    G->>FE: Открывает страницу типа звонка
-    FE->>BE: GET /api/v1/event-types/{id}/slots?date=...
-    BE->>DB: правила доступности + занятые записи
-    BE-->>FE: список свободных слотов
+    G->>FE: Открывает главный экран
+    FE->>BE: GET /api/v1/profile, GET /api/v1/event-types
+    FE->>BE: GET /api/v1/event-types/{id}/slots
+    BE->>DB: занятые интервалы окна 14 дней
+    BE-->>FE: свободные слоты по дням
     G->>FE: Выбирает слот, вводит имя и email
     FE->>BE: POST /api/v1/bookings
-    BE->>DB: INSERT booking (UNIQUE по слоту)
-    alt слот свободен
+    BE->>BE: слот из расписания? (иначе 409 slot_not_available)
+    BE->>DB: INSERT booking (EXCLUDE по времени)
+    alt время свободно
         BE-->>FE: 201 Created
-    else слот занят
-        BE-->>FE: 409 Conflict
+    else пересечение с другой записью
+        BE-->>FE: 409 slot_taken
+        FE->>BE: перезагрузка слотов
     end
 ```
 

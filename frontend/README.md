@@ -1,43 +1,10 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend
 
-## Getting Started
+Next.js 16 (App Router), React, TypeScript, Tailwind 4, shadcn/ui, pnpm. Тонкий UI: вся бизнес-логика (слоты, бронирование) — в backend.
 
-First, run the development server:
+- `/` — экран записи гостя: профиль владельца, тип события, календарь на 14 дней, слоты, форма и подтверждение (`components/booking/`).
+- `/admin` — страница владельца: предстоящие встречи по месяцам и типы событий (`components/admin/`), без авторизации.
+- Запросы идут через SDK, сгенерированный из `api/openapi.yaml` (`lib/api/generated`, руками не правится; `make generate` из корня репозитория), на тот же origin; Next.js проксирует `/api/v1/*` на backend (`API_URL`, по умолчанию `http://localhost:8000`).
+- Тесты (Vitest + Testing Library + MSW) — `tests/`, типизированные моки — `mocks/`.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## Переменные окружения и моки API
-
-Образец — `.env.example`, копируется в `.env.local`.
-
-- `API_URL` — адрес backend (по умолчанию `http://localhost:8000`), читается на сервере.
-- `MOCK_API=true` — вместо backend ответы отдаёт MSW (`mocks/`). Работает только вне production; пока в backend нет `/api/v1/event-types`, оставляйте включённым.
+Команды запускаются из корня репозитория: `make dev-frontend`, `make test-frontend`, `make lint-frontend`, `make typecheck-frontend`, `make build`. Перед правками Next.js читайте [AGENTS.md](AGENTS.md): версия отличается от привычных.
