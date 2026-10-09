@@ -2,11 +2,15 @@
 
 from datetime import date, datetime
 from typing import Annotated
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints
 
 # Символ NUL запрещён контрактом: PostgreSQL не хранит его в тексте.
 NO_NUL = r"^[^\u0000]+$"
+# Синтаксис адреса: локальная часть, «@», домен с точкой, без пробелов и NUL.
+# Доставляемость не проверяем: контракт требует только формат.
+EMAIL = r"^[^@\s\u0000]+@[^@\s\u0000]+\.[^@\s\u0000]+$"
 
 EventTypeId = Annotated[
     str,
@@ -54,3 +58,36 @@ class SlotsResponse(BaseModel):
 
     timezone: str
     days: list[SlotDay]
+
+
+class BookingInput(BaseModel):
+    """Данные для бронирования слота (гость)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    event_type_id: EventTypeId
+    starts_at: AwareDatetime
+    guest_name: Annotated[str, Field(min_length=1, max_length=100, pattern=NO_NUL)]
+    guest_email: Annotated[str, Field(max_length=254, pattern=EMAIL)]
+    comment: Annotated[str, Field(max_length=500, pattern=r"^[^\u0000]*$")] | None = None
+
+
+class Booking(BaseModel):
+    """Бронирование (встреча в списке владельца)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    event_type: EventType
+    starts_at: datetime
+    ends_at: datetime
+    guest_name: str
+    guest_email: str
+    comment: str | None = None
+    created_at: datetime
+
+
+class BookingList(BaseModel):
+    """Список бронирований."""
+
+    items: list[Booking]

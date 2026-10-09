@@ -35,8 +35,14 @@ export type BookingInput = {
      * Начало слота; должно совпадать со слотом из выдачи слотов.
      */
     starts_at: string;
+    /**
+     * Без символа NUL: PostgreSQL не хранит его в тексте.
+     */
     guest_name: string;
     guest_email: string;
+    /**
+     * Без символа NUL: PostgreSQL не хранит его в тексте.
+     */
     comment?: string;
 };
 
