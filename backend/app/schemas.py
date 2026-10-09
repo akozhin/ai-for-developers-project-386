@@ -1,5 +1,6 @@
 """Схемы запросов и ответов API (форма данных задаётся контрактом в `api/`)."""
 
+from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
@@ -28,3 +29,28 @@ class EventTypeList(BaseModel):
     """Список типов событий."""
 
     items: list[EventType]
+
+
+class Slot(BaseModel):
+    """Свободный интервал времени под тип события (UTC)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    starts_at: datetime
+    ends_at: datetime
+
+
+class SlotDay(BaseModel):
+    """Свободные слоты одного календарного дня владельца."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    date: date
+    slots: list[Slot]
+
+
+class SlotsResponse(BaseModel):
+    """Окно записи: все 14 дней, начиная с текущей даты."""
+
+    timezone: str
+    days: list[SlotDay]

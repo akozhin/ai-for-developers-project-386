@@ -1,5 +1,6 @@
 """Типы событий: создание владельцем, чтение гостем и владельцем."""
 
+from datetime import datetime
 from http import HTTPStatus
 from typing import Annotated
 
@@ -8,8 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import models, schemas
+from app import models, schemas, slots
+from app.config import Settings
 from app.db import get_session
+from app.dependencies import get_now, get_settings
 from app.errors import ApiError
 
 UNIQUE_VIOLATION = "23505"  # SQLSTATE: нарушение уникальности (дубликат id)
@@ -55,3 +58,33 @@ async def get_event_type(event_type_id: str, session: SessionDep) -> schemas.Eve
     if event_type is None:
         raise ApiError(HTTPStatus.NOT_FOUND, "event_type_not_found", "Тип события не найден")
     return schemas.EventType.model_validate(event_type)
+
+
+@router.get("/{event_type_id}/slots")
+async def get_event_type_slots(
+    event_type_id: str,
+    session: SessionDep,
+    settings: Annotated[Settings, Depends(get_settings)],
+    now: Annotated[datetime, Depends(get_now)],
+) -> schemas.SlotsResponse:
+    """Свободные слоты типа события на все 14 дней окна записи, по дням."""
+    event_type = await session.get(models.EventType, event_type_id)
+    if event_type is None:
+        raise ApiError(HTTPStatus.NOT_FOUND, "event_type_not_found", "Тип события не найден")
+    window_start, window_end = slots.window_bounds(now, settings)
+    busy = await session.execute(
+        select(models.Booking.starts_at, models.Booking.ends_at).where(
+            models.Booking.starts_at < window_end,
+            models.Booking.ends_at > window_start,
+        ),
+    )
+    days = slots.compute_slot_days(
+        duration_minutes=event_type.duration_minutes,
+        now=now,
+        settings=settings,
+        busy=[(begins, ends) for begins, ends in busy],
+    )
+    return schemas.SlotsResponse(
+        timezone=settings.owner_timezone,
+        days=[schemas.SlotDay.model_validate(day) for day in days],
+    )

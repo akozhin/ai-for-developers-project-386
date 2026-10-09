@@ -2,14 +2,17 @@
 
 import asyncio
 import os
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import httpx
 import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
+from pydantic_settings import SettingsConfigDict
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
@@ -20,8 +23,17 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 
+from app.config import Settings
 from app.db import get_session
+from app.dependencies import get_now, get_settings
 from app.main import create_app
+
+
+class IsolatedSettings(Settings):
+    """Настройки без чтения `.env`: результат тестов не зависит от файла разработчика."""
+
+    model_config = SettingsConfigDict(env_file=None)
+
 
 ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
 TEST_DATABASE_URL = os.environ.setdefault(
@@ -122,6 +134,8 @@ def app(engine: AsyncEngine) -> FastAPI:
             yield session
 
     application.dependency_overrides[get_session] = override_session
+    # Лямбда нужна: класс FastAPI принял бы за зависимость с параметрами запроса.
+    application.dependency_overrides[get_settings] = lambda: IsolatedSettings()  # noqa: PLW0108
     return application
 
 
@@ -131,3 +145,25 @@ async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
     transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as http_client:
         yield http_client
+
+
+@pytest.fixture
+def freeze_now(app: FastAPI) -> Callable[[str], None]:
+    """Зафиксировать «сейчас» (ISO 8601 с часовым поясом) для запросов к приложению."""
+
+    def freeze(moment: str) -> None:
+        frozen = datetime.fromisoformat(moment)
+        assert frozen.tzinfo is not None, "«сейчас» в тестах задаётся с часовым поясом"
+        app.dependency_overrides[get_now] = lambda: frozen
+
+    return freeze
+
+
+@pytest.fixture
+def configure_schedule(app: FastAPI) -> Callable[..., None]:
+    """Подменить рабочее расписание и запас до записи (поля `Settings`)."""
+
+    def configure(**fields: Any) -> None:  # noqa: ANN401
+        app.dependency_overrides[get_settings] = lambda: IsolatedSettings(**fields)
+
+    return configure

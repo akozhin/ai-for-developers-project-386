@@ -6,6 +6,7 @@ import yaml
 from fastapi import FastAPI
 
 from app.config import Settings
+from app.dependencies import get_settings
 from app.errors import register_error_handlers
 from app.routers import event_types, health
 
@@ -18,6 +19,8 @@ def _load_contract() -> dict[str, Any]:
 
 def create_app() -> FastAPI:
     """Собрать приложение."""
+    get_settings.cache_clear()
+    get_settings()  # fail-fast: некорректная конфигурация останавливает запуск
     application = FastAPI(title="Запись на звонок")
     application.openapi = _load_contract  # type: ignore[method-assign]
     register_error_handlers(application)
