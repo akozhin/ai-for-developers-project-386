@@ -12,6 +12,8 @@ from app import models, schemas
 from app.db import get_session
 from app.errors import ApiError
 
+UNIQUE_VIOLATION = "23505"  # SQLSTATE: нарушение уникальности (дубликат id)
+
 router = APIRouter(prefix="/api/v1/event-types", tags=["event-types"])
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -36,6 +38,8 @@ async def create_event_type(body: schemas.EventType, session: SessionDep) -> sch
         await session.commit()
     except IntegrityError as error:
         await session.rollback()
+        if getattr(error.orig, "sqlstate", None) != UNIQUE_VIOLATION:
+            raise
         raise ApiError(
             HTTPStatus.CONFLICT,
             "event_type_exists",

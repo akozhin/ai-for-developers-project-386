@@ -3,7 +3,7 @@
 import httpx
 import pytest
 
-from app.seed import SeedError, load_event_types, seed_event_types
+from app.seed import SeedError, load_event_types, main, seed_event_types
 
 
 async def test_seed_creates_the_two_default_event_types(client: httpx.AsyncClient) -> None:
@@ -38,3 +38,15 @@ async def test_seed_fails_on_an_error_other_than_a_duplicate(client: httpx.Async
 
     with pytest.raises(SeedError, match=r"call-1.*422"):
         await seed_event_types(client, broken)
+
+
+def test_command_exits_with_error_when_api_is_unreachable(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("API_URL", "http://127.0.0.1:9")
+
+    exit_code = main()
+
+    assert exit_code == 1
+    assert "Не удалось создать начальные данные" in capsys.readouterr().err

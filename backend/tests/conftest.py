@@ -50,6 +50,11 @@ async def _ensure_database_exists(url: str) -> None:
 @pytest.fixture(scope="session")
 def database_url() -> str:
     """Тестовая БД с применёнными миграциями (один раз на прогон)."""
+    if not str(make_url(TEST_DATABASE_URL).database).endswith("_test"):
+        message = (
+            "TEST_DATABASE_URL должен указывать на БД с суффиксом _test: тесты очищают все таблицы"
+        )
+        raise RuntimeError(message)
     asyncio.run(_ensure_database_exists(TEST_DATABASE_URL))
     alembic_config = Config(str(ALEMBIC_INI))
     alembic_config.set_main_option("sqlalchemy.url", TEST_DATABASE_URL.replace("%", "%%"))

@@ -134,3 +134,12 @@ async def test_duration_boundaries_are_accepted(client: httpx.AsyncClient, durat
     )
 
     assert response.status_code == HTTPStatus.CREATED
+
+
+async def test_equal_durations_are_ordered_by_id(client: httpx.AsyncClient) -> None:
+    await client.post("/api/v1/event-types", json={**CALL_30, "id": "b-talk"})
+    await client.post("/api/v1/event-types", json={**CALL_30, "id": "a-talk"})
+
+    response = await client.get("/api/v1/event-types")
+
+    assert [item["id"] for item in response.json()["items"]] == ["a-talk", "b-talk"]

@@ -47,7 +47,7 @@ async def seed_event_types(client: httpx.AsyncClient, items: list[dict[str, Any]
         elif response.status_code == HTTPStatus.CONFLICT:
             existing += 1
         else:
-            message = f"{item['id']}: ответ {response.status_code} {response.text}"
+            message = f"{item.get('id', '?')}: ответ {response.status_code} {response.text}"
             raise SeedError(message)
     return SeedReport(created=created, existing=existing)
 
@@ -62,7 +62,7 @@ def main() -> int:
     api_url = os.environ.get("API_URL", DEFAULT_API_URL)
     try:
         report = asyncio.run(_run(api_url, load_event_types()))
-    except (SeedError, httpx.HTTPError) as error:
+    except (SeedError, httpx.HTTPError, OSError, json.JSONDecodeError) as error:
         sys.stderr.write(f"Не удалось создать начальные данные: {error}\n")
         return 1
     sys.stdout.write(f"Типы событий: создано {report.created}, уже были {report.existing}\n")
