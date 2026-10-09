@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Запись на звонок",
-  description: "Выберите свободное время и запишитесь на звонок",
+  description:
+    "Простой сервис записи на звонок: выберите свободное время и запишитесь без регистрации",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
