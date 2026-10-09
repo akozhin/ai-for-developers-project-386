@@ -44,6 +44,20 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: cal
+          POSTGRES_PASSWORD: cal
+          POSTGRES_DB: cal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cal"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 

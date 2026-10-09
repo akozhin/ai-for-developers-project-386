@@ -59,11 +59,12 @@ up: ## Поднять PostgreSQL (docker compose)
 down: ## Остановить docker compose
 	docker compose down
 
-migrate: ## Применить миграции (появятся в sprint-02)
-	@echo "Миграции появятся в sprint-02 (Alembic ещё не инициализирован)"
+migrate: ## Применить миграции (alembic upgrade head)
+	cd backend && uv run alembic upgrade head
 
-migrate-new: ## Создать миграцию (появятся в sprint-02)
-	@echo "Миграции появятся в sprint-02 (Alembic ещё не инициализирован)"
+migrate-new: ## Создать миграцию: make migrate-new m=add_event_types
+	@test -n "$(m)" || { echo "Укажите название: make migrate-new m=add_event_types"; exit 1; }
+	cd backend && uv run alembic revision --autogenerate -m "$(m)"
 
 generate: ## Сгенерировать всё из контракта TypeSpec: OpenAPI и SDK frontend
 	cd api && pnpm build
