@@ -2,8 +2,10 @@
 
 import asyncio
 import os
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import httpx
 import pytest
@@ -20,7 +22,9 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 
+from app.config import Settings
 from app.db import get_session
+from app.dependencies import get_now, get_settings
 from app.main import create_app
 
 ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
@@ -131,3 +135,24 @@ async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
     transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as http_client:
         yield http_client
+
+
+@pytest.fixture
+def freeze_now(app: FastAPI) -> Callable[[str], None]:
+    """Зафиксировать «сейчас» (ISO 8601 с часовым поясом) для запросов к приложению."""
+
+    def freeze(moment: str) -> None:
+        frozen = datetime.fromisoformat(moment)
+        app.dependency_overrides[get_now] = lambda: frozen
+
+    return freeze
+
+
+@pytest.fixture
+def configure_schedule(app: FastAPI) -> Callable[..., None]:
+    """Подменить рабочее расписание и запас до записи (поля `Settings`)."""
+
+    def configure(**fields: Any) -> None:  # noqa: ANN401
+        app.dependency_overrides[get_settings] = lambda: Settings(**fields)
+
+    return configure

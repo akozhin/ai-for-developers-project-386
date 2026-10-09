@@ -18,6 +18,7 @@ def _load_contract() -> dict[str, Any]:
 
 def create_app() -> FastAPI:
     """Собрать приложение."""
+    Settings()  # fail-fast: некорректная конфигурация останавливает запуск
     application = FastAPI(title="Запись на звонок")
     application.openapi = _load_contract  # type: ignore[method-assign]
     register_error_handlers(application)
