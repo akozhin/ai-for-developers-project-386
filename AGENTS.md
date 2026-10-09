@@ -43,9 +43,9 @@
 ## Архитектура
 
 - **Бизнес-логика только в backend** (расчёт слотов, бронирование); frontend — тонкий UI поверх REST `/api/v1/...`, `/health` — без версии. Контракт — Design First: **любое изменение API начинается с TypeSpec** (`api/`), затем `make generate`, затем код; сгенерированные файлы руками не правятся ([ADR-002](docs/decisions/002-api-contract-typespec.md)). `docs/concept/api-contracts.md` — устаревающий черновик (реализуется в sprint-02, пока есть только `/health`).
-- Backend: `app/main.py` собирает приложение через `create_app()`, роутеры в `app/routers/` (1 роутер = 1 файл), настройки — `app/config.py` (pydantic-settings, fail-fast). БД, Alembic и модели пока не созданы (YAGNI до sprint-02), `make migrate*` — заглушки.
+- Backend: `app/main.py` собирает приложение через `create_app()`, роутеры в `app/routers/` (1 роутер = 1 файл), настройки — `app/config.py` (pydantic-settings, fail-fast). БД — PostgreSQL (`make up`), миграции — Alembic (`make migrate`, `make migrate-new m=<название>`), сессия БД — зависимость `get_session` (`app/db.py`); ошибки API приводятся к формату контракта в `app/errors.py`; `/docs` и `/openapi.json` отдают закоммиченный `api/openapi.yaml`. Модели появляются по мере тикетов.
 - Двойное бронирование исключается ограничением в БД (`UNIQUE` по слоту); время хранится в UTC (`TIMESTAMPTZ`). См. `docs/concept/data-model.md`.
-- Тесты backend: `asyncio_mode=auto`, приложение тестируется через `httpx.ASGITransport` без поднятия сервера.
+- Тесты backend: `asyncio_mode=auto`, приложение тестируется через `httpx.ASGITransport` без поднятия сервера на реальной PostgreSQL (перед `make test-backend` выполните `make up`; в CI БД — service container); данные очищаются после каждого теста; контракт проверяет Schemathesis (`tests/test_contract.py`).
 
 ## Особенности
 
