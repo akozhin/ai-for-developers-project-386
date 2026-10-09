@@ -5,9 +5,9 @@ from typing import Any
 import schemathesis
 from schemathesis import Case
 
-from app.main import app
+from app.main import create_app
 
-schema = schemathesis.openapi.from_asgi("/openapi.json", app)
+schema = schemathesis.openapi.from_asgi("/openapi.json", create_app())
 
 
 @schema.include(path="/health").parametrize()

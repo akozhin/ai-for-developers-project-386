@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 import httpx
@@ -40,51 +40,52 @@ async def _ensure_database_exists(url: str) -> None:
                 {"name": parsed.database},
             )
             if not exists:
-                await connection.execute(text(f'create database "{parsed.database}"'))
+                quoted = connection.dialect.identifier_preparer.quote(str(parsed.database))
+                await connection.execute(text(f"create database {quoted}"))
     finally:
         await admin.dispose()
 
 
 @pytest.fixture(scope="session")
-def database_url() -> Iterator[str]:
+def database_url() -> str:
     """Тестовая БД с применёнными миграциями (один раз на прогон)."""
     asyncio.run(_ensure_database_exists(TEST_DATABASE_URL))
-    previous = os.environ.get("DATABASE_URL")
-    os.environ["DATABASE_URL"] = TEST_DATABASE_URL
-    try:
-        command.upgrade(Config(str(ALEMBIC_INI)), "head")
-        yield TEST_DATABASE_URL
-    finally:
-        if previous is None:
-            os.environ.pop("DATABASE_URL", None)
-        else:
-            os.environ["DATABASE_URL"] = previous
+    alembic_config = Config(str(ALEMBIC_INI))
+    alembic_config.set_main_option("sqlalchemy.url", TEST_DATABASE_URL.replace("%", "%%"))
+    command.upgrade(alembic_config, "head")
+    return TEST_DATABASE_URL
+
+
+async def _truncate_all_tables(engine: AsyncEngine) -> None:
+    """Очистить все таблицы данных, кроме служебной таблицы версий Alembic."""
+    async with engine.begin() as connection:
+        tables = (
+            (
+                await connection.execute(
+                    text(
+                        "select quote_ident(tablename) from pg_tables "
+                        "where schemaname = 'public' and tablename <> 'alembic_version'",
+                    ),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if tables:
+            await connection.execute(
+                text(f"truncate {', '.join(tables)} restart identity cascade"),
+            )
 
 
 @pytest.fixture
 async def engine(database_url: str) -> AsyncIterator[AsyncEngine]:
-    """Движок на тест; после теста все таблицы данных очищаются."""
+    """Движок на тест; данные очищаются до и после теста (упавший прогон не мешает)."""
     test_engine = create_async_engine(database_url)
     try:
+        await _truncate_all_tables(test_engine)
         yield test_engine
     finally:
-        async with test_engine.begin() as connection:
-            tables = (
-                (
-                    await connection.execute(
-                        text(
-                            "select quote_ident(tablename) from pg_tables "
-                            "where schemaname = 'public' and tablename <> 'alembic_version'",
-                        ),
-                    )
-                )
-                .scalars()
-                .all()
-            )
-            if tables:
-                await connection.execute(
-                    text(f"truncate {', '.join(tables)} restart identity cascade"),
-                )
+        await _truncate_all_tables(test_engine)
         await test_engine.dispose()
 
 

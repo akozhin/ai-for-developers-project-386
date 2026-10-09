@@ -19,10 +19,15 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def _database_url() -> str:
+    """URL из конфигурации Alembic (для тестов) или из настроек приложения."""
+    return config.get_main_option("sqlalchemy.url") or Settings().database_url
+
+
 def run_migrations_offline() -> None:
     """Сгенерировать SQL без подключения к БД."""
     context.configure(
-        url=Settings().database_url,
+        url=_database_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -40,7 +45,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """Создать движок и применить миграции."""
-    connectable = create_async_engine(Settings().database_url, poolclass=pool.NullPool)
+    connectable = create_async_engine(_database_url(), poolclass=pool.NullPool)
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
     await connectable.dispose()

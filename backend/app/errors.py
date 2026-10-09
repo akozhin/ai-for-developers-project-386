@@ -8,7 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-_HTTP_ERRORS = {
+_HTTP_ERRORS: dict[int, tuple[str, str]] = {
     HTTPStatus.NOT_FOUND: ("not_found", "Ресурс не найден"),
     HTTPStatus.METHOD_NOT_ALLOWED: ("method_not_allowed", "Метод не поддерживается"),
 }
@@ -64,8 +64,8 @@ async def _handle_http_error(_: Request, exc: Exception) -> JSONResponse:
     if not isinstance(exc, StarletteHTTPException):  # pragma: no cover
         raise exc
     code, message = _HTTP_ERRORS.get(
-        HTTPStatus(exc.status_code),
-        (f"http_{exc.status_code}", str(exc.detail)),
+        exc.status_code,
+        (f"http_{exc.status_code}", "Ошибка запроса"),
     )
     return _error_response(exc.status_code, code, message, exc.headers)
 

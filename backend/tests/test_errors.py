@@ -55,14 +55,14 @@ async def test_domain_error_is_rendered_as_code_and_message(
     client: httpx.AsyncClient,
 ) -> None:
     async def conflict() -> None:
-        raise ApiError(HTTPStatus.CONFLICT, "slot_taken", "Слот только что заняли")
+        raise ApiError(HTTPStatus.CONFLICT, "some_conflict", "Конфликт состояния")
 
     app.add_api_route("/__conflict", conflict)
 
     response = await client.get("/__conflict")
 
     assert response.status_code == HTTPStatus.CONFLICT
-    assert response.json() == {"code": "slot_taken", "message": "Слот только что заняли"}
+    assert response.json() == {"code": "some_conflict", "message": "Конфликт состояния"}
 
 
 async def test_unknown_route_returns_not_found_error(client: httpx.AsyncClient) -> None:
