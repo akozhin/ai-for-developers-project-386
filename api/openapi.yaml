@@ -1,0 +1,640 @@
+# GENERATED из api/main.tsp командой `make generate`. НЕ ПРАВИТЬ РУКАМИ.
+openapi: 3.1.0
+info:
+  title: Запись на звонок
+  version: 1.0.0
+  description: |-
+    Контракт API «Запись на звонок». Единственный источник правды (Design First, ADR-002):
+    любое изменение API начинается здесь, затем перегенерируется `openapi.yaml`.
+
+    Авторизации нет: владелец — один заранее заданный профиль, гость записывается без входа.
+    Время — ISO 8601 в UTC, даты календаря — `YYYY-MM-DD` по часовому поясу владельца.
+tags:
+  - name: system
+  - name: event-types
+  - name: bookings
+  - name: profile
+  - name: slot-suggestions
+paths:
+  /api/v1/bookings:
+    post:
+      operationId: createBooking
+      description: Забронировать слот (гость).
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '404':
+          description: Тип события не найден (в том числе некорректный id в пути).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeNotFound'
+        '409':
+          description: Время пересекается с существующим бронированием любого типа.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/SlotTaken'
+                  - $ref: '#/components/schemas/SlotNotAvailable'
+        '422':
+          description: Ошибка валидации полей запроса.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+      tags:
+        - bookings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingInput'
+    get:
+      operationId: listBookings
+      description: Предстоящие встречи всех типов по возрастанию начала (владелец).
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingList'
+      tags:
+        - bookings
+  /api/v1/event-types:
+    get:
+      operationId: listEventTypes
+      description: 'Список типов событий (гость и владелец). Пустой список — `200` с `items: []`.'
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeList'
+      tags:
+        - event-types
+    post:
+      operationId: createEventType
+      description: Создать тип события (владелец, без авторизации).
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventType'
+        '409':
+          description: Тип события с таким id уже существует.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeExists'
+        '422':
+          description: Ошибка валидации полей запроса.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+      tags:
+        - event-types
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventType'
+  /api/v1/event-types/{id}:
+    get:
+      operationId: getEventType
+      description: Один тип события.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventType'
+        '404':
+          description: Тип события не найден (в том числе некорректный id в пути).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeNotFound'
+      tags:
+        - event-types
+  /api/v1/event-types/{id}/slots:
+    get:
+      operationId: getEventTypeSlots
+      description: Свободные слоты типа события на все 14 дней окна записи, по дням.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotsResponse'
+        '404':
+          description: Тип события не найден (в том числе некорректный id в пути).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeNotFound'
+      tags:
+        - event-types
+  /api/v1/profile:
+    get:
+      operationId: getProfile
+      description: Профиль владельца для шапки главного экрана.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+      tags:
+        - profile
+  /api/v1/slot-suggestions:
+    post:
+      operationId: createSlotSuggestion
+      description: Подобрать слоты по пожеланию гостя с помощью AI-агента.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotSuggestionResponse'
+        '404':
+          description: Тип события не найден (в том числе некорректный id в пути).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeNotFound'
+        '422':
+          description: Ошибка валидации полей запроса.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '429':
+          description: Превышен лимит запросов к AI.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimited'
+        '503':
+          description: AI не настроен, недоступен или не успел ответить.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiUnavailable'
+      tags:
+        - slot-suggestions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SlotSuggestionInput'
+  /health:
+    get:
+      operationId: getHealth
+      description: Проверка работоспособности (без версии в пути).
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+      tags:
+        - system
+components:
+  schemas:
+    AiUnavailable:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - ai_unavailable
+        message:
+          type: string
+      description: AI не настроен, недоступен или не успел ответить.
+    Booking:
+      type: object
+      required:
+        - id
+        - event_type
+        - starts_at
+        - ends_at
+        - guest_name
+        - guest_email
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        event_type:
+          $ref: '#/components/schemas/EventType'
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        guest_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        guest_email:
+          type: string
+          maxLength: 254
+          format: email
+        comment:
+          type: string
+          maxLength: 500
+        created_at:
+          type: string
+          format: date-time
+      description: Бронирование (встреча в списке владельца).
+      examples:
+        - id: 0b8f6e1c-5f0a-4c53-9d7e-2d4e6f8a1b3c
+          event_type:
+            id: call-30
+            title: Звонок 30 минут
+            description: 'Короткий созвон: знакомство или быстрый вопрос'
+            duration_minutes: 30
+          starts_at: '2026-10-12T08:00:00Z'
+          ends_at: '2026-10-12T08:30:00Z'
+          guest_name: Анна
+          guest_email: anna@example.com
+          comment: Хочу обсудить проект
+          created_at: '2026-10-09T12:00:00Z'
+    BookingInput:
+      type: object
+      required:
+        - event_type_id
+        - starts_at
+        - guest_name
+        - guest_email
+      properties:
+        event_type_id:
+          $ref: '#/components/schemas/EventTypeId'
+        starts_at:
+          type: string
+          format: date-time
+          description: Начало слота; должно совпадать со слотом из выдачи слотов.
+        guest_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        guest_email:
+          type: string
+          maxLength: 254
+          format: email
+        comment:
+          type: string
+          maxLength: 500
+      description: Данные для бронирования слота.
+      examples:
+        - event_type_id: call-30
+          starts_at: '2026-10-12T08:00:00Z'
+          guest_name: Анна
+          guest_email: anna@example.com
+          comment: Хочу обсудить проект
+    BookingList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+    EventType:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - duration_minutes
+      properties:
+        id:
+          $ref: '#/components/schemas/EventTypeId'
+          description: Читаемый идентификатор; задаёт владелец, уникален.
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+        duration_minutes:
+          type: integer
+          format: int32
+          minimum: 5
+          maximum: 480
+          description: Длительность в минутах.
+      description: 'Тип события: вид звонка, который предлагает владелец.'
+      examples:
+        - id: call-30
+          title: Звонок 30 минут
+          description: 'Короткий созвон: знакомство или быстрый вопрос'
+          duration_minutes: 30
+    EventTypeExists:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - event_type_exists
+        message:
+          type: string
+      description: Тип события с таким id уже существует.
+    EventTypeId:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+      description: 'Читаемый идентификатор типа события: его задаёт владелец, он же в публичной ссылке.'
+    EventTypeList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventType'
+    EventTypeNotFound:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - event_type_not_found
+        message:
+          type: string
+      description: Тип события не найден (в том числе некорректный id в пути).
+    FieldError:
+      type: object
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+      description: Ошибка поля в теле запроса.
+      examples:
+        - field: guest_email
+          message: Некорректный email
+    Health:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+      description: Состояние сервиса.
+    Profile:
+      type: object
+      required:
+        - name
+        - timezone
+        - avatar_url
+        - ai_enabled
+      properties:
+        name:
+          type: string
+        timezone:
+          type: string
+          description: Часовой пояс владельца (IANA).
+        avatar_url:
+          anyOf:
+            - type: string
+            - type: 'null'
+          description: Адрес аватара или `null` (тогда показываются инициалы).
+        ai_enabled:
+          type: boolean
+          description: 'AI-подбор настроен: вкладка «Подобрать с AI» видна только при `true`.'
+      description: Профиль владельца календаря.
+      examples:
+        - name: Alexandr Kozhin
+          timezone: Europe/Moscow
+          avatar_url: /avatar.jpg
+          ai_enabled: true
+    RateLimited:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - rate_limited
+        message:
+          type: string
+      description: Превышен лимит запросов к AI.
+    Slot:
+      type: object
+      required:
+        - starts_at
+        - ends_at
+      properties:
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+      description: Свободный интервал времени под тип события.
+      examples:
+        - starts_at: '2026-10-12T08:00:00Z'
+          ends_at: '2026-10-12T08:30:00Z'
+    SlotDay:
+      type: object
+      required:
+        - date
+        - slots
+      properties:
+        date:
+          type: string
+          format: date
+          description: Дата по календарю владельца.
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slot'
+          description: Свободные слоты; нерабочий или занятый день — пустой список.
+      description: Свободные слоты одного календарного дня владельца.
+      examples:
+        - date: '2026-10-12'
+          slots:
+            - starts_at: '2026-10-12T08:00:00Z'
+              ends_at: '2026-10-12T08:30:00Z'
+    SlotNotAvailable:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - slot_not_available
+        message:
+          type: string
+      description: Время не является доступным слотом (прошлое, запас до записи, вне окна, вне рабочих часов, не на сетке).
+    SlotSuggestionInput:
+      type: object
+      required:
+        - event_type_id
+        - text
+        - timezone
+      properties:
+        event_type_id:
+          $ref: '#/components/schemas/EventTypeId'
+        text:
+          type: string
+          minLength: 1
+          maxLength: 500
+        timezone:
+          type: string
+          description: 'Часовой пояс гостя на экране (IANA): в нём трактуются «в обед», «утром».'
+      description: Пожелание гостя, описанное текстом.
+      examples:
+        - event_type_id: call-30
+          text: На следующей неделе могу в понедельник, среду или пятницу в обед
+          timezone: Europe/Moscow
+    SlotSuggestionResponse:
+      type: object
+      required:
+        - text
+        - items
+      properties:
+        text:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SuggestedSlot'
+          maxItems: 3
+          description: Только реально свободные слоты; пустой список, если ничего не подошло.
+      description: 'Ответ агента: короткий текст и до трёх подходящих слотов.'
+      examples:
+        - text: Нашёл три варианта на следующей неделе в обед
+          items:
+            - starts_at: '2026-10-12T09:30:00Z'
+              ends_at: '2026-10-12T10:00:00Z'
+              recommended: true
+    SlotTaken:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - slot_taken
+        message:
+          type: string
+      description: Время пересекается с существующим бронированием любого типа.
+    SlotsResponse:
+      type: object
+      required:
+        - timezone
+        - days
+      properties:
+        timezone:
+          type: string
+          description: Часовой пояс владельца (IANA), по нему считаются границы дней.
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/SlotDay'
+          minItems: 14
+          maxItems: 14
+      description: 'Окно записи: всегда все 14 дней, начиная с текущей даты.'
+    SuggestedSlot:
+      type: object
+      required:
+        - starts_at
+        - ends_at
+        - recommended
+      properties:
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        recommended:
+          type: boolean
+          description: Лучший вариант; ровно один в непустом ответе.
+      description: Предложенный слот.
+    ValidationError:
+      type: object
+      required:
+        - code
+        - message
+        - fields
+      properties:
+        code:
+          type: string
+          enum:
+            - validation_error
+        message:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+      description: Ошибка валидации полей запроса.
+servers:
+  - url: http://localhost:8000
+    description: Локальный backend
+    variables: {}
