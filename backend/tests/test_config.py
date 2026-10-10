@@ -60,3 +60,23 @@ def test_invalid_schedule_stops_application_startup(
 
     with pytest.raises(ValidationError):
         create_app()
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("postgres://user:pass@host/db", "postgresql+asyncpg://user:pass@host/db"),
+        ("postgresql://user:pass@host:5432/db", "postgresql+asyncpg://user:pass@host:5432/db"),
+        ("postgresql+asyncpg://user:pass@host/db", "postgresql+asyncpg://user:pass@host/db"),
+    ],
+)
+def test_database_url_is_normalized_for_asyncpg(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    raw: str,
+    expected: str,
+) -> None:
+    monkeypatch.chdir(tmp_path)  # нет файла .env
+    monkeypatch.setenv("DATABASE_URL", raw)  # так отдают URL облачные БД (Render, Heroku)
+
+    assert Settings().database_url == expected

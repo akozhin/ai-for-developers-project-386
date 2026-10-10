@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help install seed generate generate-check lint-api dev dev-backend dev-frontend lint lint-backend lint-frontend format typecheck typecheck-backend typecheck-frontend test test-backend test-frontend build up down migrate migrate-new ci
+.PHONY: help install docker-build docker-run seed generate generate-check lint-api dev dev-backend dev-frontend lint lint-backend lint-frontend format typecheck typecheck-backend typecheck-frontend test test-backend test-frontend build up down migrate migrate-new ci
 
 help: ## Показать список команд
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -77,5 +77,11 @@ generate: ## Сгенерировать всё из контракта TypeSpec:
 
 generate-check: generate ## Проверить, что сгенерированное закоммичено и актуально
 	@test -z "$$(git status --porcelain -- api/openapi.yaml frontend/lib/api/generated)" || { git --no-pager diff --stat -- api/openapi.yaml frontend/lib/api/generated; echo "Сгенерированные файлы устарели: выполните make generate и закоммитьте результат"; exit 1; }
+
+docker-build: ## Собрать Docker-образ приложения (ADR-004)
+	docker build -t cal-app .
+
+docker-run: ## Запустить образ на PORT (по умолчанию 8000); БД: DATABASE_URL, RUN_MIGRATIONS=true, SEED_ON_START=true
+	docker run --rm -e PORT=$${PORT:-8000} -p $${PORT:-8000}:$${PORT:-8000} $(if $(DATABASE_URL),-e DATABASE_URL=$(DATABASE_URL)) $(if $(RUN_MIGRATIONS),-e RUN_MIGRATIONS=$(RUN_MIGRATIONS)) $(if $(SEED_ON_START),-e SEED_ON_START=$(SEED_ON_START)) cal-app
 
 ci: generate-check lint typecheck test build ## Полный прогон как в CI

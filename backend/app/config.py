@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     openapi_path: Path = Path(__file__).resolve().parents[2] / "api" / "openapi.yaml"
     database_url: str = "postgresql+asyncpg://cal:cal@localhost:5432/cal"
+    # Собранный frontend (статический экспорт Next.js); отдаётся, только если каталог существует.
+    frontend_dist: Path = Path(__file__).resolve().parents[2] / "frontend" / "out"
 
     # Рабочее расписание владельца: одно на все типы событий.
     owner_timezone: str = "Europe/Moscow"
@@ -36,6 +38,15 @@ class Settings(BaseSettings):
     ai_api_key: SecretStr | None = None
     ai_base_url: str = "https://openrouter.ai/api/v1"
     ai_model: str = "anthropic/claude-haiku-4.5"
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_asyncpg_driver(cls, value: str) -> str:
+        """Облачные БД (Render, Heroku) отдают `postgres://` или `postgresql://` без драйвера."""
+        for prefix in ("postgres://", "postgresql://"):
+            if value.startswith(prefix):
+                return "postgresql+asyncpg://" + value.removeprefix(prefix)
+        return value
 
     @field_validator("owner_avatar_url", "ai_api_key", mode="before")
     @classmethod

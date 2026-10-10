@@ -81,6 +81,19 @@ make ci             # generate-check + lint + typecheck + test + build, как �
 
 Неверное значение расписания останавливает запуск backend с понятной ошибкой.
 
+## Docker и деплой
+
+В корне лежит `Dockerfile` ([ADR-004](docs/decisions/004-docker-render-deploy.md)): один образ, один процесс. FastAPI раздаёт и API, и собранный frontend (статический экспорт Next.js) с одного origin на порту из переменной `PORT` (по умолчанию 8000).
+
+```bash
+make docker-build                                   # собрать образ cal-app
+PORT=8000 make docker-run                           # запустить: страницы и /health работают и без БД
+DATABASE_URL=postgres://cal:cal@host.docker.internal:5432/cal \
+  RUN_MIGRATIONS=true SEED_ON_START=true PORT=8000 make docker-run   # с БД из `make up`
+```
+
+`DATABASE_URL` принимает `postgres://` и `postgresql://` (так отдают облачные БД). `RUN_MIGRATIONS=true` применяет миграции перед стартом (ошибка останавливает контейнер), `SEED_ON_START=true` идемпотентно создаёт типы событий на 30 и 60 минут. `render.yaml` описывает бесплатный деплой на Render (веб-сервис из Dockerfile и Postgres).
+
 ## Правила бронирования
 
 - Слоты начинаются на сетке 30 минут и целиком лежат в рабочем интервале; окно записи — сегодня и ещё 13 дней по календарю владельца.

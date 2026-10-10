@@ -109,3 +109,23 @@ jobs:
 
       - name: Build
         run: make build
+
+  docker:
+    name: Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t cal-app .
+
+      - name: Container starts on PORT and answers
+        run: |
+          docker run -d --name cal-app -e PORT=8123 -p 8123:8123 cal-app
+          for _ in $(seq 1 30); do
+            curl -fsS http://localhost:8123/health && break
+            sleep 2
+          done
+          curl -fsS http://localhost:8123/health
+          curl -fsS http://localhost:8123/ | grep -qi "<html"
+          curl -fsS http://localhost:8123/admin | grep -qi "<html"

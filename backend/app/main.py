@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from app.config import Settings
 from app.dependencies import get_settings
 from app.errors import register_error_handlers
+from app.frontend import mount_frontend
 from app.rate_limit import AI_REQUESTS_PER_MINUTE, WINDOW_SECONDS, RateLimiter
 from app.routers import bookings, event_types, health, profile, slot_suggestions
 
@@ -21,7 +22,7 @@ def _load_contract() -> dict[str, Any]:
 def create_app() -> FastAPI:
     """Собрать приложение."""
     get_settings.cache_clear()
-    get_settings()  # fail-fast: некорректная конфигурация останавливает запуск
+    settings = get_settings()  # fail-fast: некорректная конфигурация останавливает запуск
     application = FastAPI(title="Запись на звонок")
     application.openapi = _load_contract  # type: ignore[method-assign]
     application.state.ai_rate_limiter = RateLimiter(AI_REQUESTS_PER_MINUTE, WINDOW_SECONDS)
@@ -31,6 +32,8 @@ def create_app() -> FastAPI:
     application.include_router(bookings.router)
     application.include_router(profile.router)
     application.include_router(slot_suggestions.router)
+    if settings.frontend_dist.is_dir():
+        mount_frontend(application, settings.frontend_dist)
     return application
 
 
