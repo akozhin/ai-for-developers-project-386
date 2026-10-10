@@ -148,6 +148,12 @@ async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
         yield http_client
 
 
+@pytest.fixture(autouse=True)
+def no_frontend_build(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Тесты API не зависят от локально собранного `frontend/out`."""
+    monkeypatch.setenv("FRONTEND_DIST", "/nonexistent-frontend-build")
+
+
 @pytest.fixture
 def freeze_now(app: FastAPI) -> Callable[[str], None]:
     """Зафиксировать «сейчас» (ISO 8601 с часовым поясом) для запросов к приложению."""

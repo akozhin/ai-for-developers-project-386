@@ -19,7 +19,7 @@
 ```mermaid
 graph TB
     Browser[Браузер] -->|HTTP| FE[frontend :3000]
-    FE -->|rewrites /api/v1/*| BE[backend :8000]
+    FE -->|rewrites /api/v1/* (только dev)| BE[backend :8000]
     BE -->|asyncpg| DB[(postgres :5432)]
 ```
 

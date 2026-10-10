@@ -22,6 +22,7 @@
 | Автоисправление | `make format` |
 | Сборка frontend | `make build` |
 | **Генерация из контракта** | `make generate` (TypeSpec → `api/openapi.yaml` → SDK frontend в `frontend/lib/api/generated`); `make generate-check` падает, если результат не закоммичен |
+| Docker-образ | `make docker-build`, `make docker-run` (порт — `PORT`, по умолчанию 8000; ADR-004) |
 | Полный прогон как в CI | `make ci` |
 
 Один тест:
@@ -48,7 +49,8 @@
 - **Бизнес-логика только в backend** (расчёт слотов, бронирование); frontend — тонкий UI поверх REST `/api/v1/...`, `/health` — без версии. Контракт — Design First: **любое изменение API начинается с TypeSpec** (`api/`), затем `make generate`, затем код; сгенерированные файлы руками не правятся ([ADR-002](docs/decisions/002-api-contract-typespec.md)). `docs/concept/api-contracts.md` — краткий обзор контракта (источник правды — `api/main.tsp`).
 - Backend: `app/main.py` собирает приложение через `create_app()`, роутеры в `app/routers/` (1 роутер = 1 файл), настройки — `app/config.py` (pydantic-settings, fail-fast). БД — PostgreSQL (`make up`), миграции — Alembic (`make migrate`, `make migrate-new m=<название>`), сессия БД — зависимость `get_session` (`app/db.py`); ошибки API приводятся к формату контракта в `app/errors.py`; `/docs` и `/openapi.json` отдают закоммиченный `api/openapi.yaml`. Модели появляются по мере тикетов.
 - Структура backend: `app/slots.py` — расчёт слотов (одна функция для выдачи слотов, проверки бронирования и AI), `app/slot_search.py`/`app/slot_agent.py` — AI-подбор (ADR-003), `app/models.py`, `app/schemas.py`, `app/dependencies.py` (подменяемые в тестах `get_now` и `get_settings`), `app/errors.py` (формат ошибок контракта), `app/seed.py` (`make seed`, данные в `seed/event-types.json`).
-- Структура frontend: `app/page.tsx` — экран записи (`components/booking/`), `app/admin/` — страница владельца (`components/admin/`); запросы идут через SDK `lib/api/generated` и общий клиент `lib/api/client.ts` на тот же origin, Next.js проксирует `/api/v1/*` на backend (`rewrites`). Типизированные MSW-моки для тестов — в `frontend/mocks/`.
+- Образ: `Dockerfile` в корне (двухэтапный: статический экспорт frontend → рантайм Python), запуск — `docker/entrypoint.sh` (порт из `PORT`; миграции и начальные данные по `RUN_MIGRATIONS`/`SEED_ON_START`); `app/frontend.py` раздаёт собранный frontend, если каталог `FRONTEND_DIST` существует; `NEXT_OUTPUT=export` включает статический экспорт (`pnpm build:static`), `rewrites` работают только в разработке. Деплой — [ADR-004](docs/decisions/004-docker-render-deploy.md).
+- Структура frontend: `app/page.tsx` — экран записи (`components/booking/`), `app/admin/` — страница владельца (`components/admin/`); запросы идут через SDK `lib/api/generated` и общий клиент `lib/api/client.ts` на тот же origin: в разработке Next.js проксирует `/api/v1/*` на backend (`rewrites`), в образе frontend отдаёт сам backend. Типизированные MSW-моки для тестов — в `frontend/mocks/`.
 - Двойное бронирование исключается ограничением в БД (`EXCLUDE` по диапазону времени: две встречи, даже разных типов, не пересекаются); время хранится в UTC (`TIMESTAMPTZ`). См. `docs/concept/data-model.md`.
 - Тесты backend: `asyncio_mode=auto`, приложение тестируется через `httpx.ASGITransport` без поднятия сервера на реальной PostgreSQL (перед `make test-backend` выполните `make up`; в CI БД — service container); данные очищаются после каждого теста; контракт проверяет Schemathesis (`tests/test_contract.py`).
 

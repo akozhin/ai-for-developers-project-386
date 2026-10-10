@@ -12,6 +12,7 @@
 - [001-tech-stack.md](decisions/001-tech-stack.md) — стек и организация репозитория
 - [002-api-contract-typespec.md](decisions/002-api-contract-typespec.md) — контракт в TypeSpec (Design First)
 - [003-ai-agent-langchain.md](decisions/003-ai-agent-langchain.md) — AI-подбор слотов на LangChain-агенте
+- [004-docker-render-deploy.md](decisions/004-docker-render-deploy.md) — один Docker-образ, один процесс на `PORT`, деплой на Render
 
 ## Макеты
 - [mockups/](mockups/) — экран записи, режим AI, аватар владельца по умолчанию
