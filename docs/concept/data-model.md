@@ -1,7 +1,7 @@
 # Модель данных
 
 > **СУБД:** PostgreSQL 18. Все моменты времени — `TIMESTAMPTZ` (UTC). Схему ведёт Alembic: `make migrate`, `make migrate-new m=<название>`; модели — `backend/app/models.py`, миграции — `backend/migrations/versions/`.
-> **Ключи:** у типа события — slug, который задаёт владелец; у бронирования — `UUID` ([ADR-001](../decisions/001-tech-stack.md)).
+> **Ключи:** у типа события — slug, который задаёт владелец; у бронирования — `UUID` ([ADR-001](../adr/001-tech-stack.md)).
 
 ## ER-диаграмма
 

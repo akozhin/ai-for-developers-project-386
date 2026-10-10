@@ -22,7 +22,7 @@
 
 ![Режим «Подобрать с AI»](docs/mockups/book.png)
 
-> Макеты лежат в [docs/mockups/](docs/mockups/); реализация сделана по [спецификации](https://github.com/akozhin/ai-for-developers-project-386/issues/14). Решения — в [docs/decisions/](docs/decisions/), словарь — в [GLOSSARY.md](GLOSSARY.md), API-контракт — [`api/main.tsp`](api/main.tsp) ([обзор](docs/concept/api-contracts.md)).
+> Макеты лежат в [docs/mockups/](docs/mockups/); реализация сделана по [спецификации](https://github.com/akozhin/ai-for-developers-project-386/issues/14). Решения — в [docs/adr/](docs/adr/), словарь — в [GLOSSARY.md](GLOSSARY.md), API-контракт — [`api/main.tsp`](api/main.tsp) ([обзор](docs/concept/api-contracts.md)).
 
 ## Стек
 
@@ -87,7 +87,7 @@ make ci             # generate-check + lint + typecheck + test + build, как �
 
 ## Docker и деплой
 
-В корне лежит `Dockerfile` ([ADR-004](docs/decisions/004-docker-render-deploy.md)): один образ, один процесс. FastAPI раздаёт и API, и собранный frontend (статический экспорт Next.js) с одного origin на порту из переменной `PORT` (по умолчанию 8000).
+В корне лежит `Dockerfile` ([ADR-004](docs/adr/004-docker-render-deploy.md)): один образ, один процесс. FastAPI раздаёт и API, и собранный frontend (статический экспорт Next.js) с одного origin на порту из переменной `PORT` (по умолчанию 8000).
 
 ```bash
 make docker-build                                   # собрать образ cal-app
@@ -98,6 +98,10 @@ DATABASE_URL=postgres://cal:cal@host.docker.internal:5432/cal \
 
 `DATABASE_URL` принимает `postgres://` и `postgresql://` (так отдают облачные БД). `RUN_MIGRATIONS=true` применяет миграции перед стартом (ошибка останавливает контейнер), `SEED_ON_START=true` идемпотентно создаёт типы событий на 30 и 60 минут. Бесплатный деплой на Render (веб-сервис из Dockerfile и Postgres) описан в ADR-004.
 
+## MCP-серверы для агента
+
+В корне лежит [`.mcp.json`](.mcp.json) с конфигурацией **Render MCP** (деплой, логи и метрики на Render, [ADR-004](docs/adr/004-docker-render-deploy.md)). Чтобы подключить его в Claude Code, задайте ключ в окружении и откройте проект: `export RENDER_API_KEY=<ключ из Render: Account Settings → API Keys>`. Ключ в репозиторий не записывается.
+
 ## Правила бронирования
 
 - Слоты начинаются на сетке 30 минут и целиком лежат в рабочем интервале; окно записи — сегодня и ещё 13 дней по календарю владельца.
@@ -106,7 +110,7 @@ DATABASE_URL=postgres://cal:cal@host.docker.internal:5432/cal \
 
 ## AI-подбор слотов
 
-Backend умеет подбирать слоты по фразе («на следующей неделе в обед по понедельникам»): `POST /api/v1/slot-suggestions`, агент LangChain с одним инструментом поиска слотов, слоты проверяются функцией слотов ([ADR-003](docs/decisions/003-ai-agent-langchain.md)). Нужен `AI_API_KEY`. **Вкладка «Подобрать с AI» на экране пока не подключена** (отложена, см. [roadmap](docs/roadmap.md)).
+Backend умеет подбирать слоты по фразе («на следующей неделе в обед по понедельникам»): `POST /api/v1/slot-suggestions`, агент LangChain с одним инструментом поиска слотов, слоты проверяются функцией слотов ([ADR-003](docs/adr/003-ai-agent-langchain.md)). Нужен `AI_API_KEY`. **Вкладка «Подобрать с AI» на экране пока не подключена** (отложена, см. [roadmap](docs/roadmap.md)).
 
 ## Как проверить требования задания
 

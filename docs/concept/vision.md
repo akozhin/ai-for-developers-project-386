@@ -93,7 +93,7 @@ graph LR
 
 ## 8. Технологический стек
 
-Полностью — [ADR-001](../decisions/001-tech-stack.md).
+Полностью — [ADR-001](../adr/001-tech-stack.md).
 
 - **Backend:** Python 3.12, uv, FastAPI + uvicorn, SQLAlchemy 2 async, Alembic, asyncpg, Pydantic v2, ruff (`ALL`), mypy strict, pytest + pytest-asyncio + httpx.
 - **Frontend:** Next.js (App Router), React, TypeScript strict, Tailwind 4, shadcn/ui, pnpm, ESLint + Prettier, Vitest + Testing Library.
