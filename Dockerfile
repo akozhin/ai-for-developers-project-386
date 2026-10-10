@@ -20,16 +20,16 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
     PYTHONUNBUFFERED=1 \
     PATH="/srv/backend/.venv/bin:${PATH}"
+RUN useradd --uid 10001 --no-create-home app
 WORKDIR /srv/backend
 COPY backend/pyproject.toml backend/uv.lock backend/.python-version ./
 RUN uv sync --frozen --no-dev --no-install-project
-COPY backend/ ./
+COPY --chown=app backend/ ./
 # Раскладка как в репозитории: настройки ищут контракт, данные и frontend относительно корня.
-COPY api/openapi.yaml /srv/api/openapi.yaml
-COPY seed/ /srv/seed/
-COPY --from=frontend /srv/frontend/out /srv/frontend/out
+COPY --chown=app api/openapi.yaml /srv/api/openapi.yaml
+COPY --chown=app seed/ /srv/seed/
+COPY --from=frontend --chown=app /srv/frontend/out /srv/frontend/out
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN useradd --uid 10001 --no-create-home app && chown -R app /srv
 USER app
 
 ENV PORT=8000

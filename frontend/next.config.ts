@@ -7,6 +7,9 @@ const staticExport: NextConfig = { output: "export" };
 
 // В разработке браузер ходит в API через тот же origin: CORS на backend не нужен.
 const proxiedToBackend: NextConfig = {
+  // Эти флаги несовместимы с `output: "export"`, поэтому включены только вне экспорта.
+  cacheComponents: true,
+  partialPrefetching: true,
   async rewrites() {
     const apiUrl = process.env.API_URL ?? "http://localhost:8000";
     return [

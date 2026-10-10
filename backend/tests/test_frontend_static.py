@@ -89,3 +89,43 @@ async def test_paths_outside_the_site_directory_are_not_served(
 
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert "секрет" not in response.text
+
+
+async def test_head_request_for_a_page_succeeds(site: httpx.AsyncClient) -> None:
+    response = await site.head("/admin")
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.headers["content-type"].startswith("text/html")
+
+
+async def test_null_byte_in_the_path_is_a_plain_not_found(site: httpx.AsyncClient) -> None:
+    response = await site.get("/%00")
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+
+
+async def test_symlink_pointing_outside_the_site_is_not_followed(
+    site: httpx.AsyncClient,
+    dist: Path,
+) -> None:
+    (dist / "leak.txt").symlink_to(dist.parent / "secret.txt")
+
+    response = await site.get("/leak.txt")
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert "секрет" not in response.text
+
+
+async def test_without_a_404_page_unknown_path_returns_the_json_error(
+    dist: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (dist / "404.html").unlink()
+    monkeypatch.setenv("FRONTEND_DIST", str(dist))
+    transport = httpx.ASGITransport(app=create_app(), raise_app_exceptions=False)
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/нет-такой-страницы")
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {"code": "not_found", "message": "Ресурс не найден"}

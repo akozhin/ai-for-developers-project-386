@@ -92,7 +92,7 @@ DATABASE_URL=postgres://cal:cal@host.docker.internal:5432/cal \
   RUN_MIGRATIONS=true SEED_ON_START=true PORT=8000 make docker-run   # с БД из `make up`
 ```
 
-`DATABASE_URL` принимает `postgres://` и `postgresql://` (так отдают облачные БД). `RUN_MIGRATIONS=true` применяет миграции перед стартом (ошибка останавливает контейнер), `SEED_ON_START=true` идемпотентно создаёт типы событий на 30 и 60 минут. `render.yaml` описывает бесплатный деплой на Render (веб-сервис из Dockerfile и Postgres).
+`DATABASE_URL` принимает `postgres://` и `postgresql://` (так отдают облачные БД). `RUN_MIGRATIONS=true` применяет миграции перед стартом (ошибка останавливает контейнер), `SEED_ON_START=true` идемпотентно создаёт типы событий на 30 и 60 минут. Бесплатный деплой на Render (веб-сервис из Dockerfile и Postgres) описан в ADR-004.
 
 ## Правила бронирования
 

@@ -13,7 +13,10 @@ IMMUTABLE_CACHE = "public, max-age=31536000, immutable"
 def _find_file(root: Path, path: str) -> Path | None:
     """Файл для пути: сам файл, `<путь>.html` (страницы Next.js) или `<путь>/index.html`."""
     for candidate in (root / path, root / f"{path}.html", root / path / "index.html"):
-        resolved = candidate.resolve()
+        try:
+            resolved = candidate.resolve()
+        except ValueError:  # недопустимый символ в пути, например нулевой байт
+            return None
         if resolved.is_relative_to(root) and resolved.is_file():
             return resolved
     return None
@@ -27,7 +30,7 @@ def mount_frontend(application: FastAPI, dist: Path) -> None:
     """
     root = dist.resolve()
 
-    @application.get("/{path:path}", include_in_schema=False)
+    @application.api_route("/{path:path}", methods=["GET", "HEAD"], include_in_schema=False)
     async def serve_frontend(path: str) -> Response:
         if path == "api" or path.startswith("api/"):
             raise HTTPException(status_code=404)

@@ -127,5 +127,11 @@ jobs:
             sleep 2
           done
           curl -fsS http://localhost:8123/health
-          curl -fsS http://localhost:8123/ | grep -qi "<html"
-          curl -fsS http://localhost:8123/admin | grep -qi "<html"
+          curl -fsS -o home.html http://localhost:8123/
+          curl -fsS -o admin.html http://localhost:8123/admin
+          grep -qi "<html" home.html
+          grep -qi "<html" admin.html
+
+      - name: Container logs
+        if: failure()
+        run: docker logs cal-app
