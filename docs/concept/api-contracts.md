@@ -1,6 +1,6 @@
 # API-контракт
 
-> **Источник правды — TypeSpec:** [`api/main.tsp`](../../api/main.tsp). Из него командой `make generate` собираются [`api/openapi.yaml`](../../api/openapi.yaml) (OpenAPI 3.1) и SDK frontend (`frontend/lib/api/generated`). Сгенерированное руками не правится. Решение — [ADR-002](../decisions/002-api-contract-typespec.md).
+> **Источник правды — TypeSpec:** [`api/main.tsp`](../../api/main.tsp). Из него командой `make generate` собираются [`api/openapi.yaml`](../../api/openapi.yaml) (OpenAPI 3.1) и SDK frontend (`frontend/lib/api/generated`). Сгенерированное руками не правится. Решение — [ADR-002](../adr/002-api-contract-typespec.md).
 > Этот файл — краткий обзор; при расхождении прав контракт. Подробности (поля, ограничения, примеры) — в `api/openapi.yaml`, Swagger UI — `http://localhost:8000/docs` у запущенного backend.
 
 ## Правила изменения
